@@ -61,7 +61,7 @@ public class ObjectProxy<T> implements InvocationHandler, IAsyncObjectProxy {
     }
 
     @Override
-    public RPCFuture call(String funcName, Object... args) {
+    public RPCFuture call(String funcName, Object... args) throws InterruptedException {
         RpcClientHandler handler = ConnectManage.getInstance().chooseHandler();
         RpcRequest request = createRequest(this.clazz.getName(), funcName, args);
         RPCFuture rpcFuture = handler.sendRequest(request);

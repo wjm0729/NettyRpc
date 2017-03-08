@@ -4,6 +4,7 @@ import com.nettyrpc.protocol.RpcRequest;
 import com.nettyrpc.protocol.RpcResponse;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -12,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.SocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * Created by luxiaoxun on 2016-03-14.
@@ -64,11 +66,17 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
         channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
     }
 
-    public RPCFuture sendRequest(RpcRequest request) {
-        RPCFuture rpcFuture = new RPCFuture(request);
-        pendingRPC.put(request.getRequestId(), rpcFuture);
-        channel.writeAndFlush(request);
-
-        return rpcFuture;
-    }
+	public RPCFuture sendRequest(RpcRequest request) throws InterruptedException {
+		final CountDownLatch latch = new CountDownLatch(1);
+		RPCFuture rpcFuture = new RPCFuture(request);
+		pendingRPC.put(request.getRequestId(), rpcFuture);
+		channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
+			@Override
+			public void operationComplete(ChannelFuture future) {
+				latch.countDown();
+			}
+		});
+		latch.await();
+		return rpcFuture;
+	}
 }
