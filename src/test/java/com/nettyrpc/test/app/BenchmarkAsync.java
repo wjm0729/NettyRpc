@@ -36,7 +36,9 @@ public class BenchmarkAsync {
                                 System.out.println("error = " + result);
                         } catch (Exception e) {
                             System.out.println(e);
-                        }
+                        } catch (Throwable e) {
+							e.printStackTrace();
+						}
                     }
                 }
             });

@@ -6,6 +6,7 @@ import com.nettyrpc.test.client.Person;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by luxiaoxun on 2016-03-10.
@@ -19,6 +20,7 @@ public class HelloPersonServiceImpl implements HelloPersonService {
         for (int i = 0; i < num; ++i) {
             persons.add(new Person(Integer.toString(i), name));
         }
+        System.err.println("~~~~~~~~~~~~~~~~~~~~~"+name);
         return persons;
     }
 }

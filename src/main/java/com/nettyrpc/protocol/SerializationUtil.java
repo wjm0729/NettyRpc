@@ -4,6 +4,8 @@ import com.dyuproject.protostuff.LinkedBuffer;
 import com.dyuproject.protostuff.ProtostuffIOUtil;
 import com.dyuproject.protostuff.Schema;
 import com.dyuproject.protostuff.runtime.RuntimeSchema;
+
+import java.io.InputStream;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.objenesis.Objenesis;
@@ -63,5 +65,19 @@ public class SerializationUtil {
         } catch (Exception e) {
             throw new IllegalStateException(e.getMessage(), e);
         }
+    }
+    
+    /**
+     * 反序列化（字节数组 -> 对象）
+     */
+    public static <T> T deserialize(InputStream data, Class<T> cls) {
+    	try {
+    		T message = (T) objenesis.newInstance(cls);
+    		Schema<T> schema = getSchema(cls);
+    		ProtostuffIOUtil.mergeFrom(data, message, schema);
+    		return message;
+    	} catch (Exception e) {
+    		throw new IllegalStateException(e.getMessage(), e);
+    	}
     }
 }

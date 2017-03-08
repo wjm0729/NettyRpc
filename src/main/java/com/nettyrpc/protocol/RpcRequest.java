@@ -10,11 +10,6 @@ public class RpcRequest {
 	 */
 	public static long RPC_REQUEST_TIMEOUT = 300_000;
 	
-	/**
-	 * 同步调用时的调用者线程
-	 */
-	private Thread caller;
-	
     private String requestId;
     private String className;
     private String methodName;
@@ -60,12 +55,4 @@ public class RpcRequest {
     public void setParameters(Object[] parameters) {
         this.parameters = parameters;
     }
-
-	public Thread getCaller() {
-		return caller;
-	}
-
-	public void setCaller(Thread caller) {
-		this.caller = caller;
-	}
 }

@@ -45,7 +45,6 @@ public class ObjectProxy<T> implements InvocationHandler, IAsyncObjectProxy {
         request.setMethodName(method.getName());
         request.setParameterTypes(method.getParameterTypes());
         request.setParameters(args);
-        request.setCaller(Thread.currentThread());
         // Debug
         LOGGER.debug(method.getDeclaringClass().getName());
         LOGGER.debug(method.getName());
@@ -62,7 +61,7 @@ public class ObjectProxy<T> implements InvocationHandler, IAsyncObjectProxy {
     }
 
     @Override
-    public RPCFuture call(String funcName, Object... args) {
+    public RPCFuture call(String funcName, Object... args) throws Throwable {
         RpcClientHandler handler = ConnectManage.getInstance().chooseHandler();
         RpcRequest request = createRequest(this.clazz.getName(), funcName, args);
         RPCFuture rpcFuture = handler.sendRequest(request);

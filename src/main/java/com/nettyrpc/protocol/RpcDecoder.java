@@ -1,9 +1,14 @@
 package com.nettyrpc.protocol;
 
+import java.io.ByteArrayOutputStream;
+import java.util.List;
+
+import org.apache.zookeeper.server.ByteBufferInputStream;
+import org.apache.zookeeper.server.ByteBufferOutputStream;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
-import java.util.List;
 
 /**
  * RPC Decoder
@@ -33,7 +38,9 @@ public class RpcDecoder extends ByteToMessageDecoder {
         }
         byte[] data = new byte[dataLength];
         in.readBytes(data);
-
+        
+        // ByteBufferInputStream data = new ByteBufferInputStream(in.nioBuffer(in.readerIndex(), dataLength));
+        
         Object obj = SerializationUtil.deserialize(data, genericClass);
         //Object obj = JsonUtil.deserialize(data,genericClass); // Not use this, have some bugs
         out.add(obj);

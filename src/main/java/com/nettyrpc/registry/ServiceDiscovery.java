@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author huangyong
  * @author luxiaoxun
+ * @author jiangmin.wu
  */
 public class ServiceDiscovery {
 
@@ -30,9 +31,16 @@ public class ServiceDiscovery {
 
     private String registryAddress;
     private ZooKeeper zookeeper;
-
+    
     public ServiceDiscovery(String registryAddress) {
+    	this(registryAddress, 1);
+    }
+
+    public ServiceDiscovery(String registryAddress, int connectionPerClient) {
         this.registryAddress = registryAddress;
+        if(connectionPerClient > 0) {
+        	ConnectManage.getInstance().setConnectionPerClient(connectionPerClient);
+        }
         zookeeper = connectServer();
         if (zookeeper != null) {
             watchNode(zookeeper);
