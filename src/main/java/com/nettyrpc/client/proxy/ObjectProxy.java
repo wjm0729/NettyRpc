@@ -45,6 +45,7 @@ public class ObjectProxy<T> implements InvocationHandler, IAsyncObjectProxy {
         request.setMethodName(method.getName());
         request.setParameterTypes(method.getParameterTypes());
         request.setParameters(args);
+        request.setCaller(Thread.currentThread());
         // Debug
         LOGGER.debug(method.getDeclaringClass().getName());
         LOGGER.debug(method.getName());

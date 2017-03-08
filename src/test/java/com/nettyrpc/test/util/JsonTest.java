@@ -17,7 +17,7 @@ public class JsonTest {
     public static void main(String[] args){
         RpcResponse response = new RpcResponse();
         response.setRequestId(UUID.randomUUID().toString());
-        response.setError("Error msg");
+        response.setError(new Exception("Error msg"));
         System.out.println(response.getRequestId());
 
         byte[] datas = JsonUtil.serialize(response);
@@ -28,6 +28,8 @@ public class JsonTest {
 
         RpcResponse resp = (RpcResponse)JsonUtil.deserialize(datas,RpcResponse.class);
         System.out.println(resp.getRequestId());
+        
+        resp.getError().printStackTrace();
     }
 
 

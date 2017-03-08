@@ -7,7 +7,7 @@ package com.nettyrpc.protocol;
 public class RpcResponse {
 
     private String requestId;
-    private String error;
+    private Throwable error;
     private Object result;
 
     public boolean isError() {
@@ -22,11 +22,11 @@ public class RpcResponse {
         this.requestId = requestId;
     }
 
-    public String getError() {
+    public Throwable getError() {
         return error;
     }
 
-    public void setError(String error) {
+    public void setError(Throwable error) {
         this.error = error;
     }
 

@@ -1,17 +1,21 @@
 package com.nettyrpc.client;
 
+import java.net.SocketAddress;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.nettyrpc.protocol.RpcRequest;
 import com.nettyrpc.protocol.RpcResponse;
+
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.SocketAddress;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by luxiaoxun on 2016-03-14.
@@ -43,6 +47,12 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
         super.channelRegistered(ctx);
         this.channel = ctx.channel();
     }
+    
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        super.channelInactive(ctx);
+        releaseRequest();
+    }
 
     @Override
     public void channelRead0(ChannelHandlerContext ctx, RpcResponse response) throws Exception {
@@ -70,5 +80,25 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
         channel.writeAndFlush(request);
 
         return rpcFuture;
+    }
+    
+    private void releaseRequest() {
+		for(RPCFuture f : pendingRPC.values()) {
+        	f.cancel(false);
+    	}
+	}
+    
+    public void cleanTimeoutRequest() {
+    	List<RPCFuture> list = new ArrayList<>();
+    	for(RPCFuture f : pendingRPC.values()) {
+    		if(f.isTimeout()) {
+    			list.add(f);
+    		}
+    	}
+    	for(RPCFuture f : list) {
+    		if(!f.isDone() && f.cancel(false)) {
+    			pendingRPC.remove(f.getRequestId());
+    		}
+    	}
     }
 }

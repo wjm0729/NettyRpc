@@ -1,23 +1,31 @@
 package com.nettyrpc.client;
 
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * RPC Connect Manage of ZooKeeper
@@ -29,8 +37,14 @@ public class ConnectManage {
     private volatile static ConnectManage connectManage;
 
     EventLoopGroup eventLoopGroup = new NioEventLoopGroup(4);
+    private static ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+		@Override
+		public Thread newThread(Runnable r) {
+			return new Thread(r, "TIMEOUT SCHEDULER");
+		}
+	});
     private static ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(16, 16, 600L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(65536));
-
+    
     private CopyOnWriteArrayList<RpcClientHandler> connectedHandlers = new CopyOnWriteArrayList<>();
     private Map<InetSocketAddress, RpcClientHandler> connectedServerNodes = new ConcurrentHashMap<>();
     //private Map<InetSocketAddress, Channel> connectedServerNodes = new ConcurrentHashMap<>();
@@ -42,9 +56,27 @@ public class ConnectManage {
     private volatile boolean isRuning = true;
 
     private ConnectManage() {
+    	startTimeoutScheduler();
     }
 
-    public static ConnectManage getInstance() {
+    private void startTimeoutScheduler() {
+    	scheduler.scheduleWithFixedDelay(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					for(RpcClientHandler handler:connectedHandlers) {
+						if(handler.getChannel().isActive()) {
+							handler.cleanTimeoutRequest();
+						}
+					}
+				} catch (Exception e) {
+					LOGGER.error("", e);
+				}
+			}
+		}, 15, 10, TimeUnit.SECONDS);
+	}
+
+	public static ConnectManage getInstance() {
         if (connectManage == null) {
             synchronized (ConnectManage.class) {
                 if (connectManage == null) {

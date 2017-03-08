@@ -5,7 +5,16 @@ package com.nettyrpc.protocol;
  * @author huangyong
  */
 public class RpcRequest {
-
+	/**
+	 * 请求超时，默认5分钟
+	 */
+	public static long RPC_REQUEST_TIMEOUT = 300_000;
+	
+	/**
+	 * 同步调用时的调用者线程
+	 */
+	private Thread caller;
+	
     private String requestId;
     private String className;
     private String methodName;
@@ -51,4 +60,12 @@ public class RpcRequest {
     public void setParameters(Object[] parameters) {
         this.parameters = parameters;
     }
+
+	public Thread getCaller() {
+		return caller;
+	}
+
+	public void setCaller(Thread caller) {
+		this.caller = caller;
+	}
 }

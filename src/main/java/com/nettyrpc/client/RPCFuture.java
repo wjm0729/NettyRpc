@@ -46,8 +46,17 @@ public class RPCFuture implements Future<Object> {
     public Object get() throws InterruptedException, ExecutionException {
         sync.acquire(-1);
         if (this.response != null) {
+        	Throwable error = response.getError();
+        	if(error != null) {
+        		throw new ExecutionException(error);
+        	}
             return this.response.getResult();
         } else {
+        	if(isTimeout()) {
+        		throw new RuntimeException("Timeout exception. Request id: " + this.request.getRequestId()
+                + ". Request class name: " + this.request.getClassName()
+                + ". Request method: " + this.request.getMethodName());
+        	}
             return null;
         }
     }
@@ -57,6 +66,10 @@ public class RPCFuture implements Future<Object> {
         boolean success = sync.tryAcquireNanos(-1, unit.toNanos(timeout));
         if (success) {
             if (this.response != null) {
+            	Throwable error = response.getError();
+            	if(error != null) {
+            		throw new ExecutionException(error);
+            	}
                 return this.response.getResult();
             } else {
                 return null;
@@ -70,17 +83,31 @@ public class RPCFuture implements Future<Object> {
 
     @Override
     public boolean isCancelled() {
-        throw new UnsupportedOperationException();
+        return sync.isCancelled();
     }
 
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
-        throw new UnsupportedOperationException();
+    	if(isDone()) {
+    		return false;
+    	}
+		if(sync.release(Sync.cancel)) {
+			return true;
+		}
+		return false;
+    }
+    
+    public boolean isTimeout() {
+		return System.currentTimeMillis() - startTime >= RpcRequest.RPC_REQUEST_TIMEOUT;
+	}
+    
+    public String getRequestId() {
+    	return request.getRequestId();
     }
 
     public void done(RpcResponse reponse) {
         this.response = reponse;
-        sync.release(1);
+        sync.release(Sync.done);
         invokeCallbacks();
         // Threshold
         long responseTime = System.currentTimeMillis() - startTime;
@@ -133,16 +160,17 @@ public class RPCFuture implements Future<Object> {
         private static final long serialVersionUID = 1L;
 
         //future status
-        private final int done = 1;
-        private final int pending = 0;
+        private static final int cancel = 2;
+        private static final int done = 1;
+        private static final int pending = 0;
 
         protected boolean tryAcquire(int acquires) {
             return getState() == done ? true : false;
         }
 
-        protected boolean tryRelease(int releases) {
+		protected boolean tryRelease(int state) {
             if (getState() == pending) {
-                if (compareAndSetState(pending, done)) {
+                if (compareAndSetState(pending, state)) {
                     return true;
                 }
             }
@@ -150,8 +178,11 @@ public class RPCFuture implements Future<Object> {
         }
 
         public boolean isDone() {
-            getState();
             return getState() == done;
         }
+        
+        public boolean isCancelled() {
+        	return getState() == cancel;
+		}
     }
 }
