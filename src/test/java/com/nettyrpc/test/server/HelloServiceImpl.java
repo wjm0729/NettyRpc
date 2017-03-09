@@ -16,4 +16,14 @@ public class HelloServiceImpl implements HelloService {
     public String hello(Person person) {
         return "Hello! " + person.getFirstName() + " " + person.getLastName();
     }
+
+	@Override
+	public String hello(int i) {
+		return "int "+i;
+	}
+
+//	@Override
+//	public String hello(Integer i) {
+//		return "Integer "+i;
+//	}
 }

@@ -156,11 +156,7 @@ public class ConnectManage {
 	public void reconnect(final RpcClientHandler handler, final SocketAddress remotePeer) {
 		if (handler != null) {
 			connectedHandlers.remove(handler);
-			for (RpcClientHandler h : connectedServerNodes.get(remotePeer)) {
-				if (h == handler) {
-					connectedServerNodes.remove(handler.getRemotePeer(), h);
-				}
-			}
+			connectedServerNodes.remove(remotePeer, handler);
 		}
 		connectServerNode((InetSocketAddress) remotePeer);
 	}
@@ -196,6 +192,9 @@ public class ConnectManage {
             connectedServerNodes.put(remoteAddress, handler);
             signalAvailableHandler();
             LOGGER.info("new rpc client {} {}", handler.getChannel(), connectedHandlers.size());
+        } else {
+        	handler.close();
+        	LOGGER.info("drop rpc client {} {}", handler.getChannel(), connectedHandlers.size());
         }
     }
 

@@ -74,6 +74,8 @@ public class RpcHandler extends SimpleChannelInboundHandler<RpcRequest> {
         method.setAccessible(true);
         return method.invoke(serviceBean, parameters);*/
 
+        // TODO 多zone 的可以在这里处理, 通过requestId 进行分发
+        
         // Cglib reflect
         FastClass serviceFastClass = FastClass.create(serviceClass);
         FastMethod serviceFastMethod = serviceFastClass.getMethod(methodName, parameterTypes);

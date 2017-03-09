@@ -81,7 +81,7 @@ public class RpcServer implements ApplicationContextAware, InitializingBean {
                                     .addLast(new LengthFieldBasedFrameDecoder(65536,0,4,0,0))
                                     .addLast(new RpcDecoder(RpcRequest.class))
                                     .addLast(new RpcEncoder(RpcResponse.class))
-//                                    .addLast(new IdleStateHandler(10, 10, 20, TimeUnit.SECONDS))
+//                                    .addLast(new IdleStateHandler(60, 60, 60, TimeUnit.SECONDS))
                                     .addLast(new RpcPingPongHandler())
                                     .addLast(new RpcHandler(handlerMap));
                         }

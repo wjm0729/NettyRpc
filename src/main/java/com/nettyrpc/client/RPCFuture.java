@@ -23,6 +23,7 @@ public class RPCFuture implements Future<Object> {
     private static final Logger LOGGER = LoggerFactory.getLogger(RPCFuture.class);
 
     private Sync sync;
+    private RpcClient rpcClient;
     private RpcRequest request;
     private RpcResponse response;
     private long startTime;
@@ -32,9 +33,10 @@ public class RPCFuture implements Future<Object> {
     private List<AsyncRPCCallback> pendingCallbacks = new ArrayList<AsyncRPCCallback>();
     private ReentrantLock lock = new ReentrantLock();
 
-    public RPCFuture(RpcRequest request) {
+    public RPCFuture(RpcRequest request, RpcClient rpcClient) {
         this.sync = new Sync();
         this.request = request;
+        this.rpcClient = rpcClient;
         this.startTime = System.currentTimeMillis();
     }
 
@@ -144,7 +146,7 @@ public class RPCFuture implements Future<Object> {
 
     private void runCallback(final AsyncRPCCallback callback) {
         final RpcResponse res = this.response;
-        RpcClient.submit(new Runnable() {
+        rpcClient.submit(new Runnable() {
             @Override
             public void run() {
                 if (!res.isError()) {

@@ -1,6 +1,10 @@
 package com.nettyrpc.test.client;
 
 public interface HelloService {
+	
+	String hello(int i);
+	
+//	String hello(Integer i);
 
     String hello(String name);
 

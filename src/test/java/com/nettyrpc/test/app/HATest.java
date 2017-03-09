@@ -6,11 +6,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import com.nettyrpc.client.AsyncRPCCallback;
+import com.nettyrpc.client.ConnectManage;
 import com.nettyrpc.client.RPCFuture;
 import com.nettyrpc.client.RpcClient;
 import com.nettyrpc.client.proxy.IAsyncObjectProxy;
 import com.nettyrpc.registry.ServiceDiscovery;
 import com.nettyrpc.test.client.HelloPersonService;
+import com.nettyrpc.test.client.HelloService;
 import com.nettyrpc.test.client.Person;
 
 /**
@@ -20,15 +22,48 @@ public class HATest {
 	public static ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(50);
 
 	public static void main(String[] args) throws Throwable {
-		syncTest();
+		orderTest();
+		//syncTest();
 		//asyncTest();
 	}
+	private static void orderTest() throws InterruptedException {
+		long start = System.currentTimeMillis();
+		ConnectManage connectManage = new ConnectManage(1000, 10);
+		ServiceDiscovery serviceDiscovery = new ServiceDiscovery("10.1.6.72:2181", connectManage);
+		final RpcClient rpcClient = new RpcClient(serviceDiscovery);
+		final int count = 1000;
+		final CountDownLatch countDownLatch = new CountDownLatch(count+1);
+		IAsyncObjectProxy hello = rpcClient.createAsync(HelloService.class);
+		
+		for(int i=1; i<=count; i++) {
+			RPCFuture helloPersonFuture = hello.call("hello", Integer.valueOf(i));
+			helloPersonFuture.addCallback(new AsyncRPCCallback() {
+	            @Override
+	            public void success(Object result) {
+		            System.out.println(result);
+		            countDownLatch.countDown();
+	            }
+	            @Override
+	            public void fail(Exception e) {
+		            System.out.println(e);
+		            countDownLatch.countDown();
+	            }
+            });
+		}
+		countDownLatch.await();
+		rpcClient.stop();
+		System.err.println("-----" + executor.getPoolSize());
+		executor.shutdownNow();
+		System.err.println("End "+(System.currentTimeMillis() - start));
+	}
+
 
 	private static void syncTest() {
 		long start = System.currentTimeMillis();
-		ServiceDiscovery serviceDiscovery = new ServiceDiscovery("10.1.6.72:2181");
+		ConnectManage connectManage = new ConnectManage(1000, 1);
+		ServiceDiscovery serviceDiscovery = new ServiceDiscovery("10.1.6.72:2181", connectManage);
 		final RpcClient rpcClient = new RpcClient(serviceDiscovery);
-		final int count = 10000;
+		final int count = 1000;
 		final CountDownLatch countDownLatch = new CountDownLatch(count);
 		final HelloPersonService client = rpcClient.create(HelloPersonService.class);
 		for (int i = 0; i < count; i++) {

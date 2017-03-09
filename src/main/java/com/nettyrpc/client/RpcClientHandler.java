@@ -83,9 +83,9 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
         channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
     }
 
-	public RPCFuture sendRequest(RpcRequest request) throws InterruptedException {
+	public RPCFuture sendRequest(RpcRequest request, RpcClient rpcClient) throws InterruptedException {
 		final CountDownLatch latch = new CountDownLatch(1);
-		RPCFuture rpcFuture = new RPCFuture(request);
+		RPCFuture rpcFuture = new RPCFuture(request, rpcClient);
 		pendingRPC.put(request.getRequestId(), rpcFuture);
 		channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
 			@Override

@@ -1,15 +1,17 @@
 package com.nettyrpc.client.proxy;
 
-import com.nettyrpc.client.ConnectManage;
-import com.nettyrpc.client.RPCFuture;
-import com.nettyrpc.client.RpcClientHandler;
-import com.nettyrpc.protocol.RpcRequest;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.util.UUID;
+import com.nettyrpc.client.ConnectManage;
+import com.nettyrpc.client.RPCFuture;
+import com.nettyrpc.client.RpcClient;
+import com.nettyrpc.client.RpcClientHandler;
+import com.nettyrpc.protocol.RpcRequest;
+import com.nettyrpc.protocol.id.IRequestIDCreater;
 
 /**
  * Created by luxiaoxun on 2016-03-16.
@@ -18,11 +20,11 @@ import java.util.UUID;
 public class ObjectProxy<T> implements InvocationHandler, IAsyncObjectProxy {
     private static final Logger LOGGER = LoggerFactory.getLogger(ObjectProxy.class);
     private Class<T> clazz;
-    private ConnectManage connectManage;
+    private RpcClient rpcClient;
 
-    public ObjectProxy(Class<T> clazz, ConnectManage connectManage) {
+    public ObjectProxy(Class<T> clazz, RpcClient rpcClient) {
         this.clazz = clazz;
-        this.connectManage = connectManage;
+        this.rpcClient = rpcClient;
     }
 
     @Override
@@ -43,7 +45,7 @@ public class ObjectProxy<T> implements InvocationHandler, IAsyncObjectProxy {
         }
 
         RpcRequest request = new RpcRequest();
-        request.setRequestId(UUID.randomUUID().toString());
+        request.setRequestId(rpcClient.getRequestIDCreater().crreateID());
         request.setClassName(method.getDeclaringClass().getName());
         request.setMethodName(method.getName());
         request.setParameterTypes(method.getParameterTypes());
@@ -58,22 +60,22 @@ public class ObjectProxy<T> implements InvocationHandler, IAsyncObjectProxy {
             LOGGER.debug(args[i].toString());
         }
 
-        RpcClientHandler handler = connectManage.chooseHandler();
-        RPCFuture rpcFuture = handler.sendRequest(request);
+        RpcClientHandler handler = rpcClient.getConnectManage().chooseHandler();
+        RPCFuture rpcFuture = handler.sendRequest(request, rpcClient);
         return rpcFuture.get();
     }
 
     @Override
     public RPCFuture call(String funcName, Object... args) throws InterruptedException {
-        RpcClientHandler handler = connectManage.chooseHandler();
+        RpcClientHandler handler = rpcClient.getConnectManage().chooseHandler();
         RpcRequest request = createRequest(this.clazz.getName(), funcName, args);
-        RPCFuture rpcFuture = handler.sendRequest(request);
+        RPCFuture rpcFuture = handler.sendRequest(request, rpcClient);
         return rpcFuture;
     }
 
     private RpcRequest createRequest(String className, String methodName, Object[] args) {
         RpcRequest request = new RpcRequest();
-        request.setRequestId(UUID.randomUUID().toString());
+        request.setRequestId(rpcClient.getRequestIDCreater().crreateID());
         request.setClassName(className);
         request.setMethodName(methodName);
         request.setParameters(args);
@@ -106,7 +108,7 @@ public class ObjectProxy<T> implements InvocationHandler, IAsyncObjectProxy {
         return request;
     }
 
-    private Class<?> getClassType(Object obj){
+    private Class<?> getClassType(Object obj) {
         Class<?> classType = obj.getClass();
         String typeName = classType.getName();
         switch (typeName){
