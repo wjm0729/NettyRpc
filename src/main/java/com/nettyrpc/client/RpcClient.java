@@ -26,38 +26,19 @@ public class RpcClient {
 	
 	private ServiceDiscovery serviceDiscovery;
 	private IRequestIDCreater requestIDCreater = IRequestIDCreater.DEFAULT;
-	private ThreadPoolExecutor threadPoolExecutor = null;
+	private int maxCore = Math.max(4, Runtime.getRuntime().availableProcessors());
+	private ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(maxCore, maxCore * 2, 600L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(65536), new NamedThreadFactory("RpcClient"), new RejectedExecutionHandler() {
+		@Override
+		public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+			if(!executor.isShutdown()) {
+				LOGGER.error("RpcClient queue is full, invoke in the caller Thread.");
+				r.run();
+			}
+		}
+	});
 
 	public RpcClient(ServiceDiscovery serviceDiscovery) {
-		this(serviceDiscovery, null);
-	}
-	
-	public RpcClient(ServiceDiscovery serviceDiscovery, IRequestIDCreater requestIDCreater) {
-		this(serviceDiscovery, null, null);
-	}
-
-	public RpcClient(ServiceDiscovery serviceDiscovery, ThreadPoolExecutor threadPoolExecutor, IRequestIDCreater requestIDCreater) {
 		this.serviceDiscovery = serviceDiscovery;
-		if (threadPoolExecutor == null) {
-			int core = Runtime.getRuntime().availableProcessors();
-			threadPoolExecutor = new ThreadPoolExecutor(core, core * 2, 600L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(65536), new NamedThreadFactory("RpcClient"), new RejectedExecutionHandler() {
-				@Override
-				public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-					if(!executor.isShutdown()) {
-						LOGGER.error("RpcClient queue is full, invoke in the caller Thread.");
-						r.run();
-					}
-				}
-			});
-		}
-		this.threadPoolExecutor = threadPoolExecutor;
-		if(threadPoolExecutor.getThreadFactory() == null) {
-			threadPoolExecutor.setThreadFactory(new NamedThreadFactory("RpcClient"));
-		}
-		
-		if(requestIDCreater != null) {
-			this.requestIDCreater = requestIDCreater; 
-		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -84,8 +65,21 @@ public class RpcClient {
 	public ConnectManage getConnectManage() {
 		return serviceDiscovery.getConnectManage();
 	}
-
+	
+	// for spring
 	public IRequestIDCreater getRequestIDCreater() {
 		return requestIDCreater;
+	}
+
+	public void setRequestIDCreater(IRequestIDCreater requestIDCreater) {
+		this.requestIDCreater = requestIDCreater;
+	}
+
+	public ThreadPoolExecutor getThreadPoolExecutor() {
+		return threadPoolExecutor;
+	}
+
+	public void setThreadPoolExecutor(ThreadPoolExecutor threadPoolExecutor) {
+		this.threadPoolExecutor = threadPoolExecutor;
 	}
 }

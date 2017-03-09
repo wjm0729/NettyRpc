@@ -6,12 +6,10 @@ import java.lang.reflect.Method;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.nettyrpc.client.ConnectManage;
 import com.nettyrpc.client.RPCFuture;
 import com.nettyrpc.client.RpcClient;
 import com.nettyrpc.client.RpcClientHandler;
 import com.nettyrpc.protocol.RpcRequest;
-import com.nettyrpc.protocol.id.IRequestIDCreater;
 
 /**
  * Created by luxiaoxun on 2016-03-16.
@@ -80,7 +78,7 @@ public class ObjectProxy<T> implements InvocationHandler, IAsyncObjectProxy {
         request.setMethodName(methodName);
         request.setParameters(args);
 
-        Class[] parameterTypes = new Class[args.length];
+        Class<?>[] parameterTypes = new Class[args.length];
         // Get the right class type
         for (int i = 0; i < args.length; i++) {
             parameterTypes[i] = getClassType(args[i]);

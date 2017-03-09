@@ -17,6 +17,7 @@
     <bean id="rpcServer" class="com.nettyrpc.server.RpcServer">
         <constructor-arg name="serverAddress" value="${server.address}"/>
         <constructor-arg name="serviceRegistry" ref="serviceRegistry"/>
+        <property name="clientTimeoutSeconds" value="10"/>
     </bean>
 
 </beans>

@@ -1,41 +1,41 @@
 package com.nettyrpc.server;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.nettyrpc.protocol.RpcRequest;
 import com.nettyrpc.protocol.RpcResponse;
+
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import java.util.Map;
-import net.sf.cglib.reflect.FastClass;
-import net.sf.cglib.reflect.FastMethod;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * RPC Handler（RPC request processor）
  * @author luxiaoxun
+ * @author jiangmin.wu
  */
 public class RpcHandler extends SimpleChannelInboundHandler<RpcRequest> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RpcHandler.class);
-
-    private final Map<String, Object> handlerMap;
-
-    public RpcHandler(Map<String, Object> handlerMap) {
-        this.handlerMap = handlerMap;
+    
+    private RpcServer rpcServer;
+    
+    public RpcHandler(RpcServer rpcServer) {
+    	this.rpcServer = rpcServer;
     }
 
     @Override
     public void channelRead0(final ChannelHandlerContext ctx, final RpcRequest request) throws Exception {
-        RpcServer.submit(new Runnable() {
+    	rpcServer.submit(new Runnable() {
             @Override
             public void run() {
                 LOGGER.debug("Receive request " + request.getRequestId());
                 RpcResponse response = new RpcResponse();
                 response.setRequestId(request.getRequestId());
                 try {
-                    Object result = handle(request);
+                    Object result = rpcServer.getRpcHandlerProxy().handle(rpcServer.getHandlerMap(), request);
                     response.setResult(result);
                 } catch (Throwable t) {
                     response.setError(t);
@@ -49,37 +49,6 @@ public class RpcHandler extends SimpleChannelInboundHandler<RpcRequest> {
                 });
             }
         });
-    }
-
-    private Object handle(RpcRequest request) throws Throwable {
-        String className = request.getClassName();
-        Object serviceBean = handlerMap.get(className);
-
-        Class<?> serviceClass = serviceBean.getClass();
-        String methodName = request.getMethodName();
-        Class<?>[] parameterTypes = request.getParameterTypes();
-        Object[] parameters = request.getParameters();
-
-        LOGGER.debug(serviceClass.getName());
-        LOGGER.debug(methodName);
-        for (int i = 0; i < parameterTypes.length; ++i) {
-            LOGGER.debug(parameterTypes[i].getName());
-        }
-        for (int i = 0; i < parameters.length; ++i) {
-            LOGGER.debug(parameters[i].toString());
-        }
-
-        // JDK reflect
-        /*Method method = serviceClass.getMethod(methodName, parameterTypes);
-        method.setAccessible(true);
-        return method.invoke(serviceBean, parameters);*/
-
-        // TODO 多zone 的可以在这里处理, 通过requestId 进行分发
-        
-        // Cglib reflect
-        FastClass serviceFastClass = FastClass.create(serviceClass);
-        FastMethod serviceFastMethod = serviceFastClass.getMethod(methodName, parameterTypes);
-        return serviceFastMethod.invoke(serviceBean, parameters);
     }
 
     @Override

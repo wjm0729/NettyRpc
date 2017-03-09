@@ -63,7 +63,7 @@ public class HelloServiceTest {
         int num = 5;
         List<Person>  persons = helloPersonService.GetTestPerson("xiaoming", num);
         
-        for(int i=0;i<10000; i++) {
+        for(int i=0;i<100; i++) {
         	helloPersonService.GetTestPerson("aaaaaa"+i, num);
         }
         

@@ -38,7 +38,7 @@
 
 	<bean id="rpcClient" class="com.nettyrpc.client.RpcClient">
 		<constructor-arg name="serviceDiscovery" ref="serviceDiscovery" />
-		<constructor-arg name="threadPoolExecutor" ref="RPCPool" />
+		<property name="threadPoolExecutor" ref="RPCPool" />
 	</bean>
 
 </beans>

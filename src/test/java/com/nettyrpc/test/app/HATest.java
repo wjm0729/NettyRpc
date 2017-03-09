@@ -22,8 +22,8 @@ public class HATest {
 	public static ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(50);
 
 	public static void main(String[] args) throws Throwable {
-		orderTest();
-		//syncTest();
+		//orderTest();
+		syncTest();
 		//asyncTest();
 	}
 	private static void orderTest() throws InterruptedException {
@@ -67,6 +67,12 @@ public class HATest {
 		final CountDownLatch countDownLatch = new CountDownLatch(count);
 		final HelloPersonService client = rpcClient.create(HelloPersonService.class);
 		for (int i = 0; i < count; i++) {
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			executor.execute(new Runnable() {
 				@Override
 				public void run() {

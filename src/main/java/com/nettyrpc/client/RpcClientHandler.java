@@ -18,6 +18,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.timeout.IdleStateEvent;
 
 /**
  * Created by luxiaoxun on 2016-03-14.
@@ -78,6 +79,23 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
         LOGGER.error("client caught exception", cause);
         ctx.close();
     }
+    
+    @Override
+	public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+		super.userEventTriggered(ctx, evt);
+		if (evt instanceof IdleStateEvent) {
+			IdleStateEvent state = (IdleStateEvent) evt;
+			switch (state.state()) {
+			case ALL_IDLE:
+				RpcRequest request = new RpcRequest();
+				request.setRequestId("ping");
+				ctx.writeAndFlush(request);
+				LOGGER.debug("send ping");
+			default:
+				break;
+			}
+		}
+	}
 
     public void close() {
         channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
