@@ -20,9 +20,9 @@ public class RpcPingPongHandler extends SimpleChannelInboundHandler<RpcMessage> 
 			RpcResponse response = new RpcResponse();
 			response.setRequestId(PONG);
 			ctx.writeAndFlush(response);
-			LOGGER.info("receive ping");
+			LOGGER.debug("receive ping");
 		} else if (requestId.equals(PONG)) {// server -> client
-			LOGGER.info("receive pong");
+			LOGGER.debug("receive pong");
 		} else {
 			ctx.fireChannelRead(request);
 		}
@@ -38,7 +38,7 @@ public class RpcPingPongHandler extends SimpleChannelInboundHandler<RpcMessage> 
 				RpcRequest request = new RpcRequest();
 				request.setRequestId(PING);
 				ctx.writeAndFlush(request);
-				LOGGER.info("send ping");
+				LOGGER.debug("send ping");
 			default:
 				break;
 			}
