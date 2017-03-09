@@ -1,23 +1,19 @@
 package com.nettyrpc.client;
 
-import java.net.SocketAddress;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.nettyrpc.protocol.RpcRequest;
 import com.nettyrpc.protocol.RpcResponse;
-
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.SocketAddress;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * Created by luxiaoxun on 2016-03-14.
@@ -49,22 +45,14 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
         super.channelRegistered(ctx);
         this.channel = ctx.channel();
     }
-    
-    @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        super.channelInactive(ctx);
-        releaseRequest();
-    }
 
     @Override
     public void channelRead0(ChannelHandlerContext ctx, RpcResponse response) throws Exception {
         String requestId = response.getRequestId();
         RPCFuture rpcFuture = pendingRPC.get(requestId);
-        LOGGER.debug("receive resp {}", requestId);
         if (rpcFuture != null) {
             pendingRPC.remove(requestId);
             rpcFuture.done(response);
-            LOGGER.debug("handl resp {}", requestId);
         }
     }
 
@@ -78,38 +66,17 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
         channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
     }
 
-    public RPCFuture sendRequest(RpcRequest request) throws Throwable {
-        RPCFuture rpcFuture = new RPCFuture(request);
-        final CountDownLatch latch = new CountDownLatch(1);
-        pendingRPC.put(request.getRequestId(), rpcFuture);
-        channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture future) {
-        		latch.countDown();
-            }
-        });
-        latch.await();
-        LOGGER.debug("send request {}", request.getRequestId());
-        return rpcFuture;
-    }
-    
-    private void releaseRequest() {
-		for(RPCFuture f : pendingRPC.values()) {
-        	f.cancel(false);
-    	}
+	public RPCFuture sendRequest(RpcRequest request) throws InterruptedException {
+		final CountDownLatch latch = new CountDownLatch(1);
+		RPCFuture rpcFuture = new RPCFuture(request);
+		pendingRPC.put(request.getRequestId(), rpcFuture);
+		channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
+			@Override
+			public void operationComplete(ChannelFuture future) {
+				latch.countDown();
+			}
+		});
+		latch.await();
+		return rpcFuture;
 	}
-    
-    public void cleanTimeoutRequest() {
-    	List<RPCFuture> list = new ArrayList<>();
-    	for(RPCFuture f : pendingRPC.values()) {
-    		if(f.isTimeout()) {
-    			list.add(f);
-    		}
-    	}
-    	for(RPCFuture f : list) {
-    		if(!f.isDone() && f.cancel(false)) {
-    			pendingRPC.remove(f.getRequestId());
-    		}
-    	}
-    }
 }
