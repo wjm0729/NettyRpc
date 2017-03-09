@@ -5,10 +5,10 @@ import static org.hamcrest.core.IsEqual.equalTo;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +18,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import com.nettyrpc.client.RPCFuture;
 import com.nettyrpc.client.RpcClient;
 import com.nettyrpc.client.proxy.IAsyncObjectProxy;
+import com.nettyrpc.registry.ServiceDiscovery;
 import com.nettyrpc.test.client.HelloPersonService;
 import com.nettyrpc.test.client.HelloService;
 import com.nettyrpc.test.client.Person;
@@ -29,10 +30,10 @@ public class HelloServiceTest {
     @Autowired
     private RpcClient rpcClient;
     
-//    @Before
-//    public void init(){
-//    	rpcClient = new RpcClient(new ServiceDiscovery("10.1.6.72:2181"));
-//    }
+    @Before
+    public void init(){
+    	rpcClient = new RpcClient(new ServiceDiscovery("10.1.6.72:2181"));
+    }
     
     @After
 	public void setTear() {

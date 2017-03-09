@@ -18,9 +18,11 @@ import java.util.UUID;
 public class ObjectProxy<T> implements InvocationHandler, IAsyncObjectProxy {
     private static final Logger LOGGER = LoggerFactory.getLogger(ObjectProxy.class);
     private Class<T> clazz;
+    private ConnectManage connectManage;
 
-    public ObjectProxy(Class<T> clazz) {
+    public ObjectProxy(Class<T> clazz, ConnectManage connectManage) {
         this.clazz = clazz;
+        this.connectManage = connectManage;
     }
 
     @Override
@@ -56,14 +58,14 @@ public class ObjectProxy<T> implements InvocationHandler, IAsyncObjectProxy {
             LOGGER.debug(args[i].toString());
         }
 
-        RpcClientHandler handler = ConnectManage.getInstance().chooseHandler();
+        RpcClientHandler handler = connectManage.chooseHandler();
         RPCFuture rpcFuture = handler.sendRequest(request);
         return rpcFuture.get();
     }
 
     @Override
     public RPCFuture call(String funcName, Object... args) throws InterruptedException {
-        RpcClientHandler handler = ConnectManage.getInstance().chooseHandler();
+        RpcClientHandler handler = connectManage.chooseHandler();
         RpcRequest request = createRequest(this.clazz.getName(), funcName, args);
         RPCFuture rpcFuture = handler.sendRequest(request);
         return rpcFuture;

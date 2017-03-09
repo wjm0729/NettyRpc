@@ -36,34 +36,51 @@ import io.netty.channel.socket.nio.NioSocketChannel;
  * @author jiangmin.wu
  */
 public class ConnectManage {
-
     private static final Logger LOGGER = LoggerFactory.getLogger(ConnectManage.class);
-    private volatile static ConnectManage connectManage;
 
     // 连接维护线程池
-    private static ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("Connection-Checker"));
-    private static ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(4, 16, 600L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(1000), new NamedThreadFactory("ConnectManage-POOL"));
+    private ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("Connection-Checker"));
+    private ThreadPoolExecutor connectorThreadPool = null;
     
     // netty work 线程池
-    private EventLoopGroup eventLoopGroup = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() * 2, new NamedThreadFactory("CLIENT-WORK"));
+    private EventLoopGroup clientEventLoopGroup = null;
     
     private CopyOnWriteArrayList<RpcClientHandler> connectedHandlers = new CopyOnWriteArrayList<>();
+    
     // 一个地址可对应多个RpcClientHandler
     private Multimap<SocketAddress, RpcClientHandler> connectedServerNodes;
     
     private ReentrantLock lock = new ReentrantLock();
     private Condition connected = lock.newCondition();
-    protected long connectTimeoutMillis = 6000;
+    protected long connectTimeoutMillis = 3000;
     private volatile int connectionPerClient = 1;
     private AtomicInteger roundRobin = new AtomicInteger(0);
     private volatile boolean isRuning = true;
 
-    private ConnectManage() {
+    public ConnectManage() {
+    	this(3000, 3);
+    }
+    
+    public ConnectManage(long connectTimeoutMillis, int connectionPerClient) {
+    	this(
+    			connectTimeoutMillis, 
+    			connectionPerClient, 
+    			new ThreadPoolExecutor(4, 16, 600L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(1000), new NamedThreadFactory("ConnectManage-POOL")), 
+    			new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() * 2, new NamedThreadFactory("CLIENT-WORK"))
+    		);
+    }
+
+    public ConnectManage(long connectTimeoutMillis, int connectionPerClient, ThreadPoolExecutor connectorPool, EventLoopGroup clientEventLoopGroup) {
+    	this.connectTimeoutMillis = connectTimeoutMillis;
+    	this.connectionPerClient = connectionPerClient;
+    	this.connectorThreadPool = connectorPool;
+    	this.clientEventLoopGroup = clientEventLoopGroup;
+    	
     	this.connectedServerNodes = HashMultimap.create();
     	this.connectedServerNodes = Multimaps.synchronizedMultimap(connectedServerNodes);
     	startTimeoutScheduler();
     }
-
+    
     private void startTimeoutScheduler() {
     	scheduler.scheduleWithFixedDelay(new Runnable() {
 			@Override
@@ -83,17 +100,6 @@ public class ConnectManage {
 			}
 		}, 15, 10, TimeUnit.SECONDS);
 	}
-
-	public static ConnectManage getInstance() {
-        if (connectManage == null) {
-            synchronized (ConnectManage.class) {
-                if (connectManage == null) {
-                    connectManage = new ConnectManage();
-                }
-            }
-        }
-        return connectManage;
-    }
 
     public void updateConnectedServer(List<String> allServerAddress) {
         if (allServerAddress != null) {
@@ -160,11 +166,11 @@ public class ConnectManage {
 	}
 
     private void connectServerNode(final InetSocketAddress remotePeer) {
-        threadPoolExecutor.submit(new Runnable() {
+        connectorThreadPool.submit(new Runnable() {
             @Override
             public void run() {
                 Bootstrap b = new Bootstrap();
-                b.group(eventLoopGroup)
+                b.group(clientEventLoopGroup)
                         .channel(NioSocketChannel.class)
                         .handler(new RpcClientInitializer());
 
@@ -241,8 +247,8 @@ public class ConnectManage {
         }
         signalAvailableHandler();
         scheduler.shutdown();
-        threadPoolExecutor.shutdown();
-        eventLoopGroup.shutdownGracefully();
+        connectorThreadPool.shutdown();
+        clientEventLoopGroup.shutdownGracefully();
     }
 
 	public int getConnectionPerClient() {

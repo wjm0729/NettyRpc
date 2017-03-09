@@ -6,13 +6,14 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 
-import com.nettyrpc.client.ConnectManage;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.nettyrpc.client.ConnectManage;
 
 /**
  * 服务发现
@@ -22,25 +23,22 @@ import org.slf4j.LoggerFactory;
  * @author jiangmin.wu
  */
 public class ServiceDiscovery {
-
     private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDiscovery.class);
-
-    private CountDownLatch latch = new CountDownLatch(1);
-
-    private volatile List<String> dataList = new ArrayList<>();
 
     private String registryAddress;
     private ZooKeeper zookeeper;
+    private ConnectManage connectManage;
     
+    private CountDownLatch latch = new CountDownLatch(1);
+    private volatile List<String> dataList = new ArrayList<>();
+
     public ServiceDiscovery(String registryAddress) {
-    	this(registryAddress, 1);
+    	this(registryAddress, new ConnectManage());
     }
 
-    public ServiceDiscovery(String registryAddress, int connectionPerClient) {
+    public ServiceDiscovery(String registryAddress, ConnectManage connectManage) {
         this.registryAddress = registryAddress;
-        if(connectionPerClient > 0) {
-        	ConnectManage.getInstance().setConnectionPerClient(connectionPerClient);
-        }
+        this.connectManage = connectManage;
         zookeeper = connectServer();
         if (zookeeper != null) {
             watchNode(zookeeper);
@@ -99,14 +97,14 @@ public class ServiceDiscovery {
             this.dataList = dataList;
 
             LOGGER.debug("Service discovery triggered updating connected server node.");
-            UpdateConnectedServer();
+            updateConnectedServer();
         } catch (KeeperException | InterruptedException e) {
             LOGGER.error("", e);
         }
     }
 
-    private void UpdateConnectedServer(){
-        ConnectManage.getInstance().updateConnectedServer(this.dataList);
+    private void updateConnectedServer() {
+    	connectManage.updateConnectedServer(this.dataList);
     }
 
     public void stop(){
@@ -118,4 +116,12 @@ public class ServiceDiscovery {
             }
         }
     }
+
+	public ConnectManage getConnectManage() {
+		return connectManage;
+	}
+
+	public void setConnectManage(ConnectManage connectManage) {
+		this.connectManage = connectManage;
+	}
 }

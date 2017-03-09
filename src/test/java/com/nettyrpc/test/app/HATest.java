@@ -26,10 +26,10 @@ public class HATest {
 
 	private static void syncTest() {
 		long start = System.currentTimeMillis();
-		ServiceDiscovery serviceDiscovery = new ServiceDiscovery("10.1.6.72:2181", 10);
+		ServiceDiscovery serviceDiscovery = new ServiceDiscovery("10.1.6.72:2181");
 		final RpcClient rpcClient = new RpcClient(serviceDiscovery);
 		final int count = 10000;
-		final CountDownLatch countDownLatch = new CountDownLatch(count+1);
+		final CountDownLatch countDownLatch = new CountDownLatch(count);
 		final HelloPersonService client = rpcClient.create(HelloPersonService.class);
 		for (int i = 0; i < count; i++) {
 			executor.execute(new Runnable() {
@@ -56,7 +56,7 @@ public class HATest {
 
 	private static void asyncTest() {
 		long start = System.currentTimeMillis();
-		ServiceDiscovery serviceDiscovery = new ServiceDiscovery("10.1.6.72:2181", 10);
+		ServiceDiscovery serviceDiscovery = new ServiceDiscovery("10.1.6.72:2181");
 		final RpcClient rpcClient = new RpcClient(serviceDiscovery);
 		final int count = 10000;
 		final CountDownLatch countDownLatch = new CountDownLatch(count);

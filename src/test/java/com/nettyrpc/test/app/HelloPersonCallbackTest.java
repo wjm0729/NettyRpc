@@ -16,9 +16,9 @@ import java.util.concurrent.CountDownLatch;
  */
 public class HelloPersonCallbackTest {
     public static void main(String[] args) throws Throwable {
-        ServiceDiscovery serviceDiscovery = new ServiceDiscovery("10.1.6.72:2181", 10);
+        ServiceDiscovery serviceDiscovery = new ServiceDiscovery("10.1.6.72:2181");
         final RpcClient rpcClient = new RpcClient(serviceDiscovery);
-        final CountDownLatch countDownLatch = new CountDownLatch(5);
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
 
         try {
             IAsyncObjectProxy client = rpcClient.createAsync(HelloPersonService.class);

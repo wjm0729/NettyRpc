@@ -8,11 +8,6 @@
 
 	<context:property-placeholder location="classpath:rpc.properties" />
 
-	<bean id="serviceDiscovery" class="com.nettyrpc.registry.ServiceDiscovery">
-		<constructor-arg name="registryAddress" value="${registry.address}" />
-		<constructor-arg name="connectionPerClient" value="3"/>
-	</bean>
-	
 	<bean id="RPCPool" class="java.util.concurrent.ThreadPoolExecutor">
 		<constructor-arg index="0" value="5" />
 		<constructor-arg index="1" value="10" />
@@ -32,6 +27,13 @@
 		<constructor-arg index="6" type="java.util.concurrent.RejectedExecutionHandler">
 			<bean class="java.util.concurrent.ThreadPoolExecutor$CallerRunsPolicy" />
 		</constructor-arg>
+	</bean>
+	
+	<bean id="connectManage" class="com.nettyrpc.client.ConnectManage"/>
+	
+	<bean id="serviceDiscovery" class="com.nettyrpc.registry.ServiceDiscovery">
+		<constructor-arg name="registryAddress" value="${registry.address}" />
+		<constructor-arg name="connectManage" ref="connectManage"/>
 	</bean>
 
 	<bean id="rpcClient" class="com.nettyrpc.client.RpcClient">

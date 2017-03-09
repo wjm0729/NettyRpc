@@ -12,11 +12,13 @@
     <context:property-placeholder location="classpath:rpc.properties"/>
 
 	<!-- RPC客户端配置 -->
-
-    <bean id="serviceDiscovery" class="com.nettyrpc.registry.ServiceDiscovery">
-        <constructor-arg name="registryAddress" value="${registry.address}"/>
-        <constructor-arg name="connectionPerClient" value="3"/>
-    </bean>
+	<!-- connectManage 可以选择自己配置最大等待时间,同socket地址连接个数, 连接线程池和客户端Work线程池 -->
+	<bean id="connectManage" class="com.nettyrpc.client.ConnectManage"/>
+	
+	<bean id="serviceDiscovery" class="com.nettyrpc.registry.ServiceDiscovery">
+		<constructor-arg name="registryAddress" value="${registry.address}" />
+		<constructor-arg name="connectManage" ref="connectManage"/>
+	</bean>
     
     <bean id="RPCPool" class="java.util.concurrent.ThreadPoolExecutor">
 		<constructor-arg index="0" value="5" />

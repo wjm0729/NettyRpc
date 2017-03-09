@@ -56,11 +56,11 @@ public class RpcClient {
 
 	@SuppressWarnings("unchecked")
 	public <T> T create(Class<T> interfaceClass) {
-		return (T) Proxy.newProxyInstance(interfaceClass.getClassLoader(), new Class<?>[] { interfaceClass }, new ObjectProxy<T>(interfaceClass));
+		return (T) Proxy.newProxyInstance(interfaceClass.getClassLoader(), new Class<?>[] { interfaceClass }, new ObjectProxy<T>(interfaceClass, getConnectManage()));
 	}
 
 	public <T> IAsyncObjectProxy createAsync(Class<T> interfaceClass) {
-		return new ObjectProxy<T>(interfaceClass);
+		return new ObjectProxy<T>(interfaceClass, getConnectManage());
 	}
 
 	public static void submit(Runnable task) {
@@ -70,6 +70,10 @@ public class RpcClient {
 	public void stop() {
 		threadPoolExecutor.shutdown();
 		serviceDiscovery.stop();
-		ConnectManage.getInstance().stop();
+		getConnectManage().stop();
+	}
+
+	private ConnectManage getConnectManage() {
+		return serviceDiscovery.getConnectManage();
 	}
 }
