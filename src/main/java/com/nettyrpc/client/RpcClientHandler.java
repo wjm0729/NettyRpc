@@ -98,15 +98,21 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
 	}
 	
     public void cleanTimeoutRequest() {
-        List<RPCFuture> list = new ArrayList<>();
+        List<RPCFuture> list = null;
         for(RPCFuture f : pendingRPC.values()) {
             if(f.isTimeout()) {
+            	if(list == null) {
+            		list = new ArrayList<>();
+            	}
                 list.add(f);
             }
         }
-        for(RPCFuture f : list) {
-            if(!f.isDone() && f.cancel(false)) {
-                pendingRPC.remove(f.getRequestId());
+        
+        if(list != null) {
+        	for(RPCFuture f : list) {
+                if(!f.isDone() && f.cancel(false)) {
+                    pendingRPC.remove(f.getRequestId());
+                }
             }
         }
     }

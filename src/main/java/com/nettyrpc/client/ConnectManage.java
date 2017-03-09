@@ -23,6 +23,7 @@ import com.google.common.collect.Multimaps;
 import com.nettyrpc.thread.NamedThreadFactory;
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.EventLoopGroup;
@@ -40,7 +41,7 @@ public class ConnectManage {
     private volatile static ConnectManage connectManage;
 
     // 连接维护线程池
-    private static ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("ConnectManage-TIMMER"));
+    private static ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("Connection-Checker"));
     private static ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(4, 16, 600L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(1000), new NamedThreadFactory("ConnectManage-POOL"));
     
     // netty work 线程池
@@ -69,8 +70,11 @@ public class ConnectManage {
 			public void run() {
 				try {
 					for(RpcClientHandler handler:connectedHandlers) {
-						if(handler.getChannel().isActive()) {
+						Channel channel = handler.getChannel();
+						if(channel.isActive()) {
 							handler.cleanTimeoutRequest();
+						} else {
+							reconnect(handler, handler.getRemotePeer());
 						}
 					}
 				} catch (Exception e) {

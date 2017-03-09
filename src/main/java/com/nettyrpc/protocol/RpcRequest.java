@@ -4,26 +4,17 @@ package com.nettyrpc.protocol;
  * RPC Request
  * @author huangyong
  */
-public class RpcRequest {
+public class RpcRequest extends RpcMessage {
 	/**
 	 * 请求超时，默认5分钟
 	 */
 	public static long RPC_REQUEST_TIMEOUT = 300_000;
-	
-    private String requestId;
+    
     private String className;
     private String methodName;
     private Class<?>[] parameterTypes;
     private Object[] parameters;
-
-    public String getRequestId() {
-        return requestId;
-    }
-
-    public void setRequestId(String requestId) {
-        this.requestId = requestId;
-    }
-
+    
     public String getClassName() {
         return className;
     }

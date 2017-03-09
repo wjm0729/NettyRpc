@@ -4,22 +4,13 @@ package com.nettyrpc.protocol;
  * RPC Response
  * @author huangyong
  */
-public class RpcResponse {
+public class RpcResponse extends RpcMessage {
 
-    private String requestId;
     private Throwable error;
     private Object result;
 
     public boolean isError() {
         return error != null;
-    }
-
-    public String getRequestId() {
-        return requestId;
-    }
-
-    public void setRequestId(String requestId) {
-        this.requestId = requestId;
     }
 
     public Throwable getError() {
