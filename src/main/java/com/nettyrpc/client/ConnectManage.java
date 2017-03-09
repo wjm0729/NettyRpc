@@ -23,9 +23,11 @@ import com.google.common.collect.Multimaps;
 import com.nettyrpc.thread.NamedThreadFactory;
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -168,10 +170,10 @@ public class ConnectManage {
                 Bootstrap b = new Bootstrap();
                 b.group(clientEventLoopGroup)
                         .channel(NioSocketChannel.class)
-                        .handler(new RpcClientInitializer());
-
-                ChannelFuture channelFuture = b.connect(remotePeer);
-                channelFuture.addListener(new ChannelFutureListener() {
+                        .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+                        .handler(new RpcClientInitializer())
+                        .connect(remotePeer)
+                		.addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(final ChannelFuture channelFuture) throws Exception {
                         if (channelFuture.isSuccess()) {

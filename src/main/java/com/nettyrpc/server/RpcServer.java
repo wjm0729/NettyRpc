@@ -25,6 +25,7 @@ import com.nettyrpc.registry.ServiceRegistry;
 import com.nettyrpc.thread.NamedThreadFactory;
 
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -78,7 +79,10 @@ public class RpcServer implements ApplicationContextAware, InitializingBean, Dis
         try {
             ServerBootstrap bootstrap = new ServerBootstrap();
             final RpcServer rpcServer = this;
-            bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
+            bootstrap.group(bossGroup, workerGroup)
+            		.channel(NioServerSocketChannel.class)
+            		.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+            		.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         public void initChannel(SocketChannel channel) throws Exception {
