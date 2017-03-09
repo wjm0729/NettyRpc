@@ -1,22 +1,27 @@
 package com.nettyrpc.client;
 
+import java.net.SocketAddress;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.nettyrpc.protocol.RpcRequest;
 import com.nettyrpc.protocol.RpcResponse;
+
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.SocketAddress;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
 
 /**
  * Created by luxiaoxun on 2016-03-14.
+ * @author jiangmin.wu
  */
 public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
     private static final Logger LOGGER = LoggerFactory.getLogger(RpcClientHandler.class);
@@ -38,6 +43,18 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         super.channelActive(ctx);
         this.remotePeer = this.channel.remoteAddress();
+    }
+    
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        super.channelInactive(ctx);
+        
+        LOGGER.info("client inactive cancel all request {} channel {}", pendingRPC.size(), ctx.channel());
+        
+        for(RPCFuture f : pendingRPC.values()) {
+            f.cancel(false);
+        }
+        pendingRPC.clear();
     }
 
     @Override
@@ -79,4 +96,19 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
 		latch.await();
 		return rpcFuture;
 	}
+	
+    public void cleanTimeoutRequest() {
+        List<RPCFuture> list = new ArrayList<>();
+        for(RPCFuture f : pendingRPC.values()) {
+            if(f.isTimeout()) {
+                list.add(f);
+            }
+        }
+        for(RPCFuture f : list) {
+            if(!f.isDone() && f.cancel(false)) {
+                pendingRPC.remove(f.getRequestId());
+            }
+        }
+    }
+
 }

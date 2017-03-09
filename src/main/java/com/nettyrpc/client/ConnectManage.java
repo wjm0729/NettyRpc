@@ -32,6 +32,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 /**
  * RPC Connect Manage of ZooKeeper
  * Created by luxiaoxun on 2016-03-16.
+ * @author jiangmin.wu
  */
 public class ConnectManage {
 

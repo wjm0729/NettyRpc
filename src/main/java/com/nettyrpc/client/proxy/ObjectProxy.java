@@ -13,6 +13,7 @@ import java.util.UUID;
 
 /**
  * Created by luxiaoxun on 2016-03-16.
+ * @author jiangmin.wu
  */
 public class ObjectProxy<T> implements InvocationHandler, IAsyncObjectProxy {
     private static final Logger LOGGER = LoggerFactory.getLogger(ObjectProxy.class);
