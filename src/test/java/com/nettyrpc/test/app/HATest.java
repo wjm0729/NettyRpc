@@ -1,6 +1,7 @@
 package com.nettyrpc.test.app;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -76,9 +77,9 @@ public class HATest {
 			executor.execute(new Runnable() {
 				@Override
 				public void run() {
-					int num = 500;
-					List<Person> persons = client.GetTestPerson("xiaoming", num);
-					System.out.println("persons:" + persons.size());
+					int num =2;
+					Map<String, Person> persons = client.GetTestPerson2("xiaoming", num);
+					System.out.println("persons:" + persons);
 					countDownLatch.countDown();
 				}
 			});
