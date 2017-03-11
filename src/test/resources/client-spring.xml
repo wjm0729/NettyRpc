@@ -29,15 +29,12 @@
 		</constructor-arg>
 	</bean>
 	
-	<bean id="connectManage" class="com.nettyrpc.client.ConnectManage"/>
-	
-	<bean id="serviceDiscovery" class="com.nettyrpc.registry.ServiceDiscovery">
-		<constructor-arg name="registryAddress" value="${registry.address}" />
-		<constructor-arg name="connectManage" ref="connectManage"/>
+	<bean id="connectManage" class="com.nettyrpc.client.ConnectManage">
+		<constructor-arg name="serviceAddress" value="${registry.address}" />
 	</bean>
 
 	<bean id="rpcClient" class="com.nettyrpc.client.RpcClient">
-		<constructor-arg name="serviceDiscovery" ref="serviceDiscovery" />
+		<constructor-arg name="connectManage" ref="connectManage" />
 		<property name="threadPoolExecutor" ref="RPCPool" />
 	</bean>
 

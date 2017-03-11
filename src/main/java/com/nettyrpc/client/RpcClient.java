@@ -15,7 +15,6 @@ import com.nettyrpc.client.proxy.IAsyncObjectProxy;
 import com.nettyrpc.client.proxy.ObjectProxy;
 import com.nettyrpc.protocol.AsyncMessage;
 import com.nettyrpc.protocol.id.IRequestIDCreater;
-import com.nettyrpc.registry.ServiceDiscovery;
 import com.nettyrpc.thread.NamedThreadFactory;
 
 /**
@@ -30,7 +29,7 @@ public class RpcClient {
 	 * 请求超时时间 ms
 	 */
 	private int requestTimeoutMillis = 300_000;
-	private ServiceDiscovery serviceDiscovery;
+	private ConnectManage connectManage;
 	private IRequestIDCreater requestIDCreater = IRequestIDCreater.DEFAULT;
 	private Map<String, AsyncClientHandler> asyncHandlerMap = Maps.newConcurrentMap();
 	private int maxCore = Math.max(4, Runtime.getRuntime().availableProcessors());
@@ -44,12 +43,12 @@ public class RpcClient {
 		}
 	});
 
-	public RpcClient(ServiceDiscovery serviceDiscovery) {
-		this.serviceDiscovery = serviceDiscovery;
-		// 有点绕了
-		this.serviceDiscovery.getConnectManage().setRpcClient(this);
+	public RpcClient(ConnectManage connectManage) {
+		this.connectManage = connectManage;
+		this.connectManage.setRpcClient(this);
+		this.connectManage.init();
 	}
-
+	
 	@SuppressWarnings("unchecked")
 	public <T> T create(Class<T> interfaceClass) {
 		return (T) Proxy.newProxyInstance(interfaceClass.getClassLoader(), new Class<?>[] { interfaceClass }, new ObjectProxy<T>(interfaceClass, this));
@@ -64,7 +63,7 @@ public class RpcClient {
 	}
 	
 	public void sendAsyncMessage(AsyncMessage message) {
-		getConnectManage().chooseHandler().sendAsyncMessage(message);
+		connectManage.chooseHandler().sendAsyncMessage(message);
 	}
 
 	public void submit(Runnable task) {
@@ -75,12 +74,7 @@ public class RpcClient {
 
 	public void stop() {
 		threadPoolExecutor.shutdown();
-		serviceDiscovery.stop();
-		getConnectManage().stop();
-	}
-
-	public ConnectManage getConnectManage() {
-		return serviceDiscovery.getConnectManage();
+		connectManage.stop();
 	}
 	
 	// for spring
@@ -110,5 +104,9 @@ public class RpcClient {
 
 	public Map<String, AsyncClientHandler> getAsyncHandlerMap() {
 		return asyncHandlerMap;
+	}
+
+	public ConnectManage getConnectManage() {
+		return connectManage;
 	}
 }

@@ -16,7 +16,7 @@
     </bean>
 
     <bean id="rpcServer" class="com.nettyrpc.server.RpcServer">
-        <constructor-arg name="serverAddress" value="10.1.6.217:18867"/>
+        <constructor-arg name="serverAddress" value="127.0.0.1:18867"/>
         <constructor-arg name="serviceRegistry" ref="serviceRegistry"/>
     </bean>
 

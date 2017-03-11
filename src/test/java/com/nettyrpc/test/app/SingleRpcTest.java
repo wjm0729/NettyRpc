@@ -14,11 +14,11 @@ import com.nettyrpc.test.client.Person;
 /**
  * Created by luxiaoxun on 2016/3/17.
  */
-public class HelloPersonCallbackTest {
+public class SingleRpcTest {
     public static void main(String[] args) throws Throwable {
-    	ConnectManage connectManage = new ConnectManage("192.168.1.105:4180", true);
+    	ConnectManage connectManage = new ConnectManage("127.0.0.1:18866", false);
 		final RpcClient rpcClient = new RpcClient(connectManage);
-        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        final CountDownLatch countDownLatch = new CountDownLatch(10);
 
         try {
             IAsyncObjectProxy client = rpcClient.createAsync(HelloPersonService.class);

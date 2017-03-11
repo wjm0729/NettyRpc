@@ -66,6 +66,15 @@ public class RpcServer implements ApplicationContextAware, InitializingBean, Dis
     private int clientTimeoutSeconds = 180;
     private IRpcHandlerProxy rpcHandlerProxy = IRpcHandlerProxy.DEFAULT;
     
+    /**
+     * 不需要集群
+     * 
+     * @param serverAddress
+     */
+    public RpcServer(String serverAddress) {
+    	this(serverAddress, null);
+    }
+    
     public RpcServer(String serverAddress, ServiceRegistry serviceRegistry) {
     	this.serverAddress = serverAddress;
     	this.serviceRegistry = serviceRegistry;

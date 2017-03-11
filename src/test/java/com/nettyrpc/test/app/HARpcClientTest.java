@@ -19,11 +19,11 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.google.common.collect.Maps;
 import com.nettyrpc.client.AsyncClientHandler;
+import com.nettyrpc.client.ConnectManage;
 import com.nettyrpc.client.RPCFuture;
 import com.nettyrpc.client.RpcClient;
 import com.nettyrpc.client.proxy.IAsyncObjectProxy;
 import com.nettyrpc.protocol.AsyncMessage;
-import com.nettyrpc.registry.ServiceDiscovery;
 import com.nettyrpc.test.client.HelloPersonService;
 import com.nettyrpc.test.client.HelloService;
 import com.nettyrpc.test.client.Person;
@@ -32,14 +32,15 @@ import io.netty.channel.Channel;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = "classpath:client-spring.xml")
-public class HelloServiceTest {
+public class HARpcClientTest {
 	
     @Autowired
     private RpcClient rpcClient;
     
     @Before
     public void init(){
-    	rpcClient = new RpcClient(new ServiceDiscovery("10.1.6.72:2181"));
+    	ConnectManage connectManage = new ConnectManage("192.168.1.105:4180", true);
+    	rpcClient = new RpcClient(connectManage);
     }
     
     @After

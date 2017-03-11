@@ -3,7 +3,6 @@ package com.nettyrpc.server;
 import com.nettyrpc.execution.Action;
 import com.nettyrpc.execution.ActionQueue;
 import com.nettyrpc.protocol.AsyncMessage;
-import com.nettyrpc.protocol.SerializationUtil;
 
 public class AsyncAction extends Action {
 	private AsyncMessage message;
@@ -19,7 +18,7 @@ public class AsyncAction extends Action {
 	public void execute() throws Throwable {
 		AsyncServerHandler handler = client.getRpcServer().getAsyncServerHandlerMap().get(message.getRequestId());
 		if(handler != null) {
-			handler = SerializationUtil.objenesis.newInstance(handler.getClass());
+//			handler = SerializationUtil.objenesis.newInstance(handler.getClass());
 			handler.handMessage(client, message);
 		} else {
 			AsyncServerHandler.DEFAULT.handMessage(client, message);

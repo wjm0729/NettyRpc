@@ -13,7 +13,6 @@ import com.nettyrpc.client.RPCFuture;
 import com.nettyrpc.client.RpcClient;
 import com.nettyrpc.client.proxy.IAsyncObjectProxy;
 import com.nettyrpc.protocol.AsyncMessage;
-import com.nettyrpc.registry.ServiceDiscovery;
 import com.nettyrpc.test.client.HelloPersonService;
 import com.nettyrpc.test.client.HelloService;
 import com.nettyrpc.test.client.Person;
@@ -24,6 +23,7 @@ import io.netty.channel.Channel;
  * Created by luxiaoxun on 2016/3/17.
  */
 public class HATest {
+	private static final String address = "192.168.1.105:4180,192.168.1.105:4181,192.168.1.105:4182";
 	public static ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(50);
 
 	public static void main(String[] args) throws Throwable {
@@ -32,11 +32,11 @@ public class HATest {
 		//asyncTest();
 		
 	}
+	
 	private static void orderTest() throws InterruptedException {
 		long start = System.currentTimeMillis();
-		ConnectManage connectManage = new ConnectManage(1000, 10);
-		ServiceDiscovery serviceDiscovery = new ServiceDiscovery("10.1.6.72:2181", connectManage);
-		final RpcClient rpcClient = new RpcClient(serviceDiscovery);
+		ConnectManage connectManage = new ConnectManage(address, true);
+		final RpcClient rpcClient = new RpcClient(connectManage);
 		final int count = 1000;
 		final CountDownLatch countDownLatch = new CountDownLatch(count+1);
 		IAsyncObjectProxy hello = rpcClient.createAsync(HelloService.class);
@@ -66,9 +66,8 @@ public class HATest {
 
 	private static void syncTest() {
 		long start = System.currentTimeMillis();
-		ConnectManage connectManage = new ConnectManage(1000, 1);
-		ServiceDiscovery serviceDiscovery = new ServiceDiscovery("10.1.6.72:2181", connectManage);
-		final RpcClient rpcClient = new RpcClient(serviceDiscovery);
+		ConnectManage connectManage = new ConnectManage(address, true);
+		final RpcClient rpcClient = new RpcClient(connectManage);
 		final int count = 0;
 		final CountDownLatch countDownLatch = new CountDownLatch(count+1);
 		final HelloPersonService client = rpcClient.create(HelloPersonService.class);
@@ -118,8 +117,8 @@ public class HATest {
 
 	private static void asyncTest() {
 		long start = System.currentTimeMillis();
-		ServiceDiscovery serviceDiscovery = new ServiceDiscovery("10.1.6.72:2181");
-		final RpcClient rpcClient = new RpcClient(serviceDiscovery);
+		ConnectManage connectManage = new ConnectManage(address, true);
+		final RpcClient rpcClient = new RpcClient(connectManage);
 		final int count = 10000;
 		final CountDownLatch countDownLatch = new CountDownLatch(count);
 		final IAsyncObjectProxy client = rpcClient.createAsync(HelloPersonService.class);

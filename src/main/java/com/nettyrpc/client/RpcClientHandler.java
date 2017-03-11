@@ -13,7 +13,6 @@ import com.nettyrpc.protocol.AsyncMessage;
 import com.nettyrpc.protocol.IMessage;
 import com.nettyrpc.protocol.RpcRequest;
 import com.nettyrpc.protocol.RpcResponse;
-import com.nettyrpc.protocol.SerializationUtil;
 
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -82,7 +81,7 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<IMessage> {
 			AsyncMessage message = (AsyncMessage) msg;
 			AsyncClientHandler handler = rpcClient.getAsyncHandlerMap().get(id);
 			if (handler != null) {
-				handler = SerializationUtil.objenesis.newInstance(handler.getClass());
+//				handler = SerializationUtil.objenesis.newInstance(handler.getClass());
 				handler.handMessage(message, ctx.channel());
 			} else {
 				LOGGER.error("async message handler {} not found", id);

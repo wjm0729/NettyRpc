@@ -1,7 +1,5 @@
 package com.nettyrpc.test.client;
 
-import com.example.Booking;
-
 public interface HelloService {
 	
 	String hello(int i);
@@ -10,5 +8,4 @@ public interface HelloService {
 
     String hello(Person person);
     
-    Booking getBook();
 }

@@ -1,20 +1,20 @@
 package com.nettyrpc.test.app;
 
+import java.util.concurrent.TimeUnit;
+
+import com.nettyrpc.client.ConnectManage;
 import com.nettyrpc.client.RPCFuture;
 import com.nettyrpc.client.RpcClient;
 import com.nettyrpc.client.proxy.IAsyncObjectProxy;
-import com.nettyrpc.registry.ServiceDiscovery;
 import com.nettyrpc.test.client.HelloService;
-
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created by luxiaoxun on 2016/3/16.
  */
 public class BenchmarkAsync {
     public static void main(String[] args) throws InterruptedException {
-        ServiceDiscovery serviceDiscovery = new ServiceDiscovery("127.0.0.1:2181");
-        final RpcClient rpcClient = new RpcClient(serviceDiscovery);
+    	ConnectManage connectManage = new ConnectManage("192.168.1.105:4180", true);
+		final RpcClient rpcClient = new RpcClient(connectManage);
 
         int threadNum = 10;
         final int requestNum = 20;

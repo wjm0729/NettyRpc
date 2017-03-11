@@ -1,7 +1,7 @@
 package com.nettyrpc.test.app;
 
+import com.nettyrpc.client.ConnectManage;
 import com.nettyrpc.client.RpcClient;
-import com.nettyrpc.registry.ServiceDiscovery;
 import com.nettyrpc.test.client.HelloService;
 
 /**
@@ -11,8 +11,8 @@ public class Benchmark {
 
     public static void main(String[] args) throws InterruptedException {
 
-        ServiceDiscovery serviceDiscovery = new ServiceDiscovery("127.0.0.1:2181");
-        final RpcClient rpcClient = new RpcClient(serviceDiscovery);
+    	ConnectManage connectManage = new ConnectManage("192.168.1.105:4180", true);
+		final RpcClient rpcClient = new RpcClient(connectManage);
 
         int threadNum = 10;
         final int requestNum = 100;
