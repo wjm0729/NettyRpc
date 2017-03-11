@@ -42,8 +42,9 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
 /**
- * RPC Connect Manage of ZooKeeper Created by luxiaoxun on 2016-03-16.
+ * RPC Connect Manage of ZooKeeper 
  * 
+ * @author luxiaoxun on 2016-03-16.
  * @author jiangmin.wu
  */
 public class ConnectManage {

@@ -57,14 +57,16 @@ public class RpcServer implements ApplicationContextAware, InitializingBean, Dis
     
     private int core = Runtime.getRuntime().availableProcessors();
     // 默认 线程数 core * 2 -> core * 4, 队列长度 65535, 满溢丢弃策略
-    private ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(core * 2, core * 4, 600L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(65535), new NamedThreadFactory("RpcServer"));
+    private ThreadPoolExecutor rpcLogicThreadPool = new ThreadPoolExecutor(core * 2, core * 4, 600L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(65535), new NamedThreadFactory("RpcServer"));
     // 异步消息消费线程池
-    private ActionExecutor asyncActionExecutor = new ActionExecutor(threadPoolExecutor);
+    private ActionExecutor asyncActionExecutor = new ActionExecutor(rpcLogicThreadPool);
+    
     // 异步消息处理器
     private Map<String, AsyncServerHandler> asyncServerHandlerMap = Maps.newConcurrentMap();
     // 多少秒没有读写事件就断开连接
     private int clientTimeoutSeconds = 180;
-    private IRpcHandlerProxy rpcHandlerProxy = IRpcHandlerProxy.DEFAULT;
+    // 处理委托
+    private IRpcHandlerDelegate rpcHandlerDelegate = IRpcHandlerDelegate.DEFAULT;
     
     /**
      * 不需要集群
@@ -86,14 +88,18 @@ public class RpcServer implements ApplicationContextAware, InitializingBean, Dis
         if (MapUtils.isNotEmpty(serviceBeanMap)) {
             for (Object serviceBean : serviceBeanMap.values()) {
                 String interfaceName = serviceBean.getClass().getAnnotation(RpcService.class).value().getName();
-                handlerMap.put(interfaceName, serviceBean);
+                registerRpcService(interfaceName, serviceBean);
             }
         }
     }
 
+	public void registerRpcService(String interfaceName, Object serviceBean) {
+		handlerMap.put(interfaceName, serviceBean);
+	}
+
     @Override
     public void afterPropertiesSet() throws Exception {
-    	bossGroup = new NioEventLoopGroup();
+    	bossGroup = new NioEventLoopGroup(1);
     	workerGroup = new NioEventLoopGroup();
         ServerBootstrap bootstrap = new ServerBootstrap();
         final RpcServer rpcServer = this;
@@ -130,8 +136,8 @@ public class RpcServer implements ApplicationContextAware, InitializingBean, Dis
     }
 
 	public void submit(Runnable task) {
-		if (!threadPoolExecutor.isShutdown()) {
-			threadPoolExecutor.submit(task);
+		if (!rpcLogicThreadPool.isShutdown()) {
+			rpcLogicThreadPool.submit(task);
 		}
 	}
 
@@ -139,15 +145,14 @@ public class RpcServer implements ApplicationContextAware, InitializingBean, Dis
 		return handlerMap;
 	}
 
-	public IRpcHandlerProxy getRpcHandlerProxy() {
-		return rpcHandlerProxy;
-	}
-
 	@Override
 	public void destroy() throws Exception {
 		try {
-			if (!threadPoolExecutor.isShutdown()) {
-				threadPoolExecutor.shutdown();
+			if (!rpcLogicThreadPool.isShutdown()) {
+				rpcLogicThreadPool.shutdown();
+			}
+			if(asyncActionExecutor != null && !asyncActionExecutor.getPool().isShutdown()) {
+				asyncActionExecutor.shutdown();
 			}
 			future.channel().close().awaitUninterruptibly();
 		} finally {
@@ -165,18 +170,6 @@ public class RpcServer implements ApplicationContextAware, InitializingBean, Dis
 		this.clientTimeoutSeconds = clientTimeoutSeconds;
 	}
 
-	public ThreadPoolExecutor getThreadPoolExecutor() {
-		return threadPoolExecutor;
-	}
-
-	public void setThreadPoolExecutor(ThreadPoolExecutor threadPoolExecutor) {
-		this.threadPoolExecutor = threadPoolExecutor;
-	}
-
-	public void setRpcHandlerProxy(IRpcHandlerProxy rpcHandlerProxy) {
-		this.rpcHandlerProxy = rpcHandlerProxy;
-	}
-
 	public ActionExecutor getAsyncActionExecutor() {
 		return asyncActionExecutor;
 	}
@@ -187,5 +180,21 @@ public class RpcServer implements ApplicationContextAware, InitializingBean, Dis
 
 	public Map<String, AsyncServerHandler> getAsyncServerHandlerMap() {
 		return asyncServerHandlerMap;
+	}
+
+	public void setRpcLogicThreadPool(ThreadPoolExecutor rpcLogicThreadPool) {
+		this.rpcLogicThreadPool = rpcLogicThreadPool;
+	}
+
+	public ThreadPoolExecutor getRpcLogicThreadPool() {
+		return rpcLogicThreadPool;
+	}
+
+	public IRpcHandlerDelegate getRpcHandlerDelegate() {
+		return rpcHandlerDelegate;
+	}
+
+	public void setRpcHandlerDelegate(IRpcHandlerDelegate rpcHandlerDelegate) {
+		this.rpcHandlerDelegate = rpcHandlerDelegate;
 	}
 }

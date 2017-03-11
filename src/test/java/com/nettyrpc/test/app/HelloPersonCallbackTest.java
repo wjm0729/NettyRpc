@@ -18,6 +18,7 @@ public class HelloPersonCallbackTest {
     public static void main(String[] args) throws Throwable {
     	ConnectManage connectManage = new ConnectManage("192.168.1.105:4180", true);
 		final RpcClient rpcClient = new RpcClient(connectManage);
+		rpcClient.afterPropertiesSet();
         final CountDownLatch countDownLatch = new CountDownLatch(1);
 
         try {

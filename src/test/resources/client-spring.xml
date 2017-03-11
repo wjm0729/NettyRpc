@@ -8,6 +8,7 @@
 
 	<context:property-placeholder location="classpath:rpc.properties" />
 
+	<!-- 线程池配置 -->
 	<bean id="RPCPool" class="java.util.concurrent.ThreadPoolExecutor">
 		<constructor-arg index="0" value="5" />
 		<constructor-arg index="1" value="10" />
@@ -28,14 +29,35 @@
 			<bean class="java.util.concurrent.ThreadPoolExecutor$CallerRunsPolicy" />
 		</constructor-arg>
 	</bean>
-	
+
+	<!-- 
+	客户端连接管理
+		构造参数
+			serviceAddress			连接地址 (集群模式时值为zk的地址)
+			cluster       			集群模式 (是否为集群模式,默认为false)
+		可配置项
+			connectorThreadPool		连接创建线程池
+			clientEventLoopGroup	客户端(Netty的Work)线程池			
+			connectionPerClient		为每个服务器地址创建并保持的连接数量 	1
+			connectTimeoutMillis	应用线程取RpcClient连接的超时时间		3000
+	-->
 	<bean id="connectManage" class="com.nettyrpc.client.ConnectManage">
 		<constructor-arg name="serviceAddress" value="${registry.address}" />
+		<constructor-arg name="cluster" value="true"/>
 	</bean>
 
+	<!-- 
+	Rpc客户端对象
+		构造参数
+			connectManage 			连接管理器
+		可配置项
+			requestIDCreater		消息ID生成器 默认使用 uuid
+			rpcCallbackThreadPool	rpc异步回调处理线程池
+			requestTimeoutMillis	rpc请求处理超时时间	300000
+	 -->
 	<bean id="rpcClient" class="com.nettyrpc.client.RpcClient">
 		<constructor-arg name="connectManage" ref="connectManage" />
-		<property name="threadPoolExecutor" ref="RPCPool" />
+		<property name="rpcCallbackThreadPool" ref="RPCPool" />
 	</bean>
 
 </beans>

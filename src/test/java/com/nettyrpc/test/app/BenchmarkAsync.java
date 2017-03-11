@@ -12,10 +12,10 @@ import com.nettyrpc.test.client.HelloService;
  * Created by luxiaoxun on 2016/3/16.
  */
 public class BenchmarkAsync {
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws Throwable {
     	ConnectManage connectManage = new ConnectManage("192.168.1.105:4180", true);
 		final RpcClient rpcClient = new RpcClient(connectManage);
-
+		rpcClient.afterPropertiesSet();
         int threadNum = 10;
         final int requestNum = 20;
         Thread[] threads = new Thread[threadNum];

@@ -18,6 +18,7 @@ public class SingleRpcTest {
     public static void main(String[] args) throws Throwable {
     	ConnectManage connectManage = new ConnectManage("127.0.0.1:18866", false);
 		final RpcClient rpcClient = new RpcClient(connectManage);
+		rpcClient.afterPropertiesSet();
         final CountDownLatch countDownLatch = new CountDownLatch(10);
 
         try {

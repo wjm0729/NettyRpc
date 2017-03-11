@@ -82,7 +82,9 @@ public class RpcHandler extends SimpleChannelInboundHandler<IMessage> {
 		        RpcResponse response = new RpcResponse();
 		        response.setRequestId(request.getRequestId());
 		        try {
-		            Object result = rpcServer.getRpcHandlerProxy().handle(rpcServer.getHandlerMap(), request);
+		        	String className = request.getClassName();
+			        Object serviceBean = rpcServer.getHandlerMap().get(className);
+		            Object result = rpcServer.getRpcHandlerDelegate().handle(serviceBean, request);
 		            response.setResult(result);
 		        } catch (Throwable t) {
 		            response.setError(t);

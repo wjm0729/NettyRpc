@@ -12,10 +12,6 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.google.common.collect.Maps;
 import com.nettyrpc.client.AsyncClientHandler;
@@ -24,30 +20,65 @@ import com.nettyrpc.client.RPCFuture;
 import com.nettyrpc.client.RpcClient;
 import com.nettyrpc.client.proxy.IAsyncObjectProxy;
 import com.nettyrpc.protocol.AsyncMessage;
+import com.nettyrpc.registry.ServiceRegistry;
+import com.nettyrpc.server.RpcServer;
 import com.nettyrpc.test.client.HelloPersonService;
 import com.nettyrpc.test.client.HelloService;
 import com.nettyrpc.test.client.Person;
+import com.nettyrpc.test.server.HelloPersonServiceImpl;
+import com.nettyrpc.test.server.HelloServiceImpl;
 
 import io.netty.channel.Channel;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = "classpath:client-spring.xml")
+//@RunWith(SpringJUnit4ClassRunner.class)
+//@ContextConfiguration(locations = "classpath:client-spring.xml")
 public class HARpcClientTest {
-	
-    @Autowired
+
+	private boolean cluster = true;
+//    @Autowired
     private RpcClient rpcClient;
+    private RpcServer rpcServer;
     
     @Before
-    public void init(){
-    	ConnectManage connectManage = new ConnectManage("192.168.1.105:4180", true);
-    	rpcClient = new RpcClient(connectManage);
+    public void init() throws Exception {
+    	
+    	if(cluster)
+    	// 集群模式
+    	{
+    		String registryAddress = "192.168.1.105:4180,192.168.1.105:4181,192.168.1.105:4182";
+			ServiceRegistry registry = new ServiceRegistry(registryAddress);
+    		registry.setZkTimeoutMillis(5000);
+    		
+    		rpcServer = new RpcServer("127.0.0.1:18866", registry);
+    		rpcServer.registerRpcService(HelloService.class.getName(), new HelloServiceImpl());
+    		rpcServer.registerRpcService(HelloPersonService.class.getName(), new HelloPersonServiceImpl());
+    		rpcServer.afterPropertiesSet();
+    		
+    		String serviceAddress = registryAddress;
+    		ConnectManage connectManage = new ConnectManage(serviceAddress, true);
+    		rpcClient = new RpcClient(connectManage);
+    		rpcClient.afterPropertiesSet();
+    	}
+    	
+    	else
+    	// 非集群模式
+    	{
+    		rpcServer = new RpcServer("127.0.0.1:18866");
+    		rpcServer.registerRpcService(HelloService.class.getName(), new HelloServiceImpl());
+    		rpcServer.registerRpcService(HelloPersonService.class.getName(), new HelloPersonServiceImpl());
+    		rpcServer.afterPropertiesSet();
+    		
+    		String serviceAddress = "127.0.0.1:18866";
+    		ConnectManage connectManage = new ConnectManage(serviceAddress, false);
+    		rpcClient = new RpcClient(connectManage);
+    		rpcClient.afterPropertiesSet();
+    	}
     }
     
     @After
-	public void setTear() {
-		if (rpcClient != null) {
-			rpcClient.stop();
-		}
+	public void setTear() throws Throwable {
+		rpcClient.stop();
+		rpcServer.destroy();
 	}
     
     @Test

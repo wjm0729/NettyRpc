@@ -33,10 +33,11 @@ public class HATest {
 		
 	}
 	
-	private static void orderTest() throws InterruptedException {
+	private static void orderTest() throws Exception {
 		long start = System.currentTimeMillis();
 		ConnectManage connectManage = new ConnectManage(address, true);
 		final RpcClient rpcClient = new RpcClient(connectManage);
+		rpcClient.afterPropertiesSet();
 		final int count = 1000;
 		final CountDownLatch countDownLatch = new CountDownLatch(count+1);
 		IAsyncObjectProxy hello = rpcClient.createAsync(HelloService.class);
@@ -64,10 +65,11 @@ public class HATest {
 	}
 
 
-	private static void syncTest() {
+	private static void syncTest() throws Exception {
 		long start = System.currentTimeMillis();
 		ConnectManage connectManage = new ConnectManage(address, true);
 		final RpcClient rpcClient = new RpcClient(connectManage);
+		rpcClient.afterPropertiesSet();
 		final int count = 0;
 		final CountDownLatch countDownLatch = new CountDownLatch(count+1);
 		final HelloPersonService client = rpcClient.create(HelloPersonService.class);
@@ -115,10 +117,11 @@ public class HATest {
 		System.err.println("End "+(System.currentTimeMillis() - start));
 	}
 
-	private static void asyncTest() {
+	private static void asyncTest() throws Throwable {
 		long start = System.currentTimeMillis();
 		ConnectManage connectManage = new ConnectManage(address, true);
 		final RpcClient rpcClient = new RpcClient(connectManage);
+		rpcClient.afterPropertiesSet();
 		final int count = 10000;
 		final CountDownLatch countDownLatch = new CountDownLatch(count);
 		final IAsyncObjectProxy client = rpcClient.createAsync(HelloPersonService.class);

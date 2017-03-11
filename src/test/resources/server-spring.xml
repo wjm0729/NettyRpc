@@ -10,10 +10,25 @@
     <context:component-scan base-package="com.nettyrpc.test.server"/>
     <context:property-placeholder location="classpath:rpc.properties"/>
 
+	<!-- 
+	服务注册器
+		集群模式时使用 依赖于zk
+	 -->
     <bean id="serviceRegistry" class="com.nettyrpc.registry.ServiceRegistry">
         <constructor-arg name="registryAddress" value="${registry.address}"/>
     </bean>
 
+	<!-- 
+	Rpc服务器
+		构造参数
+			serverAddress			服务器地址
+			serviceRegistry			服务地址 注册器 (可选：仅在集群模式时使用)
+		可配置项
+			rpcLogicThreadPool		服务端逻辑处理线程池
+			asyncActionExecutor		异步消息队列执行线程池 (默认使用rpcLogicThreadPool)
+			clientTimeoutSeconds	连接超时时间 (默认 180秒)
+			rpcHandlerDelegate		rpc请求处理委托类
+	 -->
     <bean id="rpcServer" class="com.nettyrpc.server.RpcServer">
         <constructor-arg name="serverAddress" value="${server.address}"/>
         <constructor-arg name="serviceRegistry" ref="serviceRegistry"/>

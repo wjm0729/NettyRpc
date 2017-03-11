@@ -1,21 +1,16 @@
 package com.nettyrpc.server;
 
-import java.util.Map;
-
 import com.nettyrpc.protocol.RpcRequest;
 
 import net.sf.cglib.reflect.FastClass;
 import net.sf.cglib.reflect.FastMethod;
 
-public interface IRpcHandlerProxy {
+public interface IRpcHandlerDelegate {
 	
-	IRpcHandlerProxy DEFAULT = new IRpcHandlerProxy() {
+	IRpcHandlerDelegate DEFAULT = new IRpcHandlerDelegate() {
 		
 		@Override
-		public Object handle(Map<String, Object> handlerMap, RpcRequest request) throws Throwable {
-			String className = request.getClassName();
-	        Object serviceBean = handlerMap.get(className);
-
+		public Object handle(Object serviceBean, RpcRequest request) throws Throwable {
 	        Class<?> serviceClass = serviceBean.getClass();
 	        String methodName = request.getMethodName();
 	        Class<?>[] parameterTypes = request.getParameterTypes();
@@ -28,5 +23,5 @@ public interface IRpcHandlerProxy {
 		}
 	};
 	
-	Object handle(Map<String, Object> handlerMap, RpcRequest request) throws Throwable;
+	Object handle(Object serviceBean, RpcRequest request) throws Throwable;
 }

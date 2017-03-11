@@ -9,11 +9,11 @@ import com.nettyrpc.test.client.HelloService;
  */
 public class Benchmark {
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws Throwable {
 
     	ConnectManage connectManage = new ConnectManage("192.168.1.105:4180", true);
 		final RpcClient rpcClient = new RpcClient(connectManage);
-
+		rpcClient.afterPropertiesSet();
         int threadNum = 10;
         final int requestNum = 100;
         Thread[] threads = new Thread[threadNum];

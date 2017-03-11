@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.InitializingBean;
 
 import com.google.common.collect.Maps;
 import com.nettyrpc.client.proxy.IAsyncObjectProxy;
@@ -23,7 +24,7 @@ import com.nettyrpc.thread.NamedThreadFactory;
  * @author luxiaoxun
  * @author jiangmin.wu
  */
-public class RpcClient {
+public class RpcClient implements InitializingBean {
 	private static final Logger LOGGER = LoggerFactory.getLogger(RpcClient.class);
 	/**
 	 * 请求超时时间 ms
@@ -31,20 +32,28 @@ public class RpcClient {
 	private int requestTimeoutMillis = 300_000;
 	private ConnectManage connectManage;
 	private IRequestIDCreater requestIDCreater = IRequestIDCreater.DEFAULT;
+	private ThreadPoolExecutor rpcCallbackThreadPool;
 	private Map<String, AsyncClientHandler> asyncHandlerMap = Maps.newConcurrentMap();
-	private int maxCore = Math.max(4, Runtime.getRuntime().availableProcessors());
-	private ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(maxCore, maxCore * 2, 600L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(65536), new NamedThreadFactory("RpcClient"), new RejectedExecutionHandler() {
-		@Override
-		public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-			if(!executor.isShutdown()) {
-				LOGGER.error("RpcClient queue is full, invoke in the caller Thread.");
-				r.run();
-			}
-		}
-	});
 
 	public RpcClient(ConnectManage connectManage) {
 		this.connectManage = connectManage;
+	}
+
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		if(rpcCallbackThreadPool == null) {
+			int maxCore = Math.max(4, Runtime.getRuntime().availableProcessors());
+			rpcCallbackThreadPool = new ThreadPoolExecutor(maxCore, maxCore * 2, 600L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(65536), new NamedThreadFactory("RpcClient"), new RejectedExecutionHandler() {
+				@Override
+				public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+					if(!executor.isShutdown()) {
+						LOGGER.error("RpcClient queue is full, invoke in the caller Thread.");
+						r.run();
+					}
+				}
+			});
+		}
+		
 		this.connectManage.setRpcClient(this);
 		this.connectManage.init();
 	}
@@ -67,13 +76,13 @@ public class RpcClient {
 	}
 
 	public void submit(Runnable task) {
-		if(!threadPoolExecutor.isShutdown()) {
-			threadPoolExecutor.submit(task);
+		if(!rpcCallbackThreadPool.isShutdown()) {
+			rpcCallbackThreadPool.submit(task);
 		}
 	}
 
 	public void stop() {
-		threadPoolExecutor.shutdown();
+		rpcCallbackThreadPool.shutdown();
 		connectManage.stop();
 	}
 	
@@ -84,14 +93,6 @@ public class RpcClient {
 
 	public void setRequestIDCreater(IRequestIDCreater requestIDCreater) {
 		this.requestIDCreater = requestIDCreater;
-	}
-
-	public ThreadPoolExecutor getThreadPoolExecutor() {
-		return threadPoolExecutor;
-	}
-
-	public void setThreadPoolExecutor(ThreadPoolExecutor threadPoolExecutor) {
-		this.threadPoolExecutor = threadPoolExecutor;
 	}
 
 	public int getRequestTimeoutMillis() {
@@ -108,5 +109,9 @@ public class RpcClient {
 
 	public ConnectManage getConnectManage() {
 		return connectManage;
+	}
+
+	public void setRpcCallbackThreadPool(ThreadPoolExecutor rpcCallbackThreadPool) {
+		this.rpcCallbackThreadPool = rpcCallbackThreadPool;
 	}
 }

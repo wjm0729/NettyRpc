@@ -7,20 +7,43 @@
        http://www.springframework.org/schema/context
        http://www.springframework.org/schema/context/spring-context.xsd">
 
-    <context:component-scan base-package="com.nettyrpc.*"/>
-
     <context:property-placeholder location="classpath:rpc.properties"/>
 
-	<!-- RPC客户端配置 -->
-	<!-- connectManage 可以选择自己配置最大等待时间,同socket地址连接个数, 连接线程池和客户端Work线程池 -->
-	<bean id="rpcConnectManage" class="com.nettyrpc.client.ConnectManage"/>
-	
-	<bean id="rpcServiceDiscovery" class="com.nettyrpc.registry.ServiceDiscovery">
-		<constructor-arg name="registryAddress" value="${registry.address}" />
-		<constructor-arg name="connectManage" ref="rpcConnectManage"/>
-	</bean>
+    <!-- RPC服务端配置 -->
+    <!-- service类扫描 -->
+    <context:component-scan base-package="com.nettyrpc.*"/>
     
-    <bean id="RPCPool" class="java.util.concurrent.ThreadPoolExecutor">
+	<!-- 
+	服务注册器
+		集群模式时使用 依赖于zk
+	 -->
+    <bean id="serviceRegistry" class="com.nettyrpc.registry.ServiceRegistry">
+        <constructor-arg name="registryAddress" value="${registry.address}"/>
+    </bean>
+
+	<!-- 
+	Rpc服务器
+		构造参数
+			serverAddress			服务器地址
+			serviceRegistry			服务地址 注册器 (可选：仅在集群模式时使用)
+		可配置项
+			rpcLogicThreadPool		服务端逻辑处理线程池
+			asyncActionExecutor		异步消息队列执行线程池 (默认使用rpcLogicThreadPool)
+			clientTimeoutSeconds	连接超时时间 (默认 180秒)
+			rpcHandlerDelegate		rpc请求处理委托类
+	 -->
+    <bean id="rpcServer" class="com.nettyrpc.server.RpcServer">
+        <constructor-arg name="serverAddress" value="${server.address}"/>
+        <constructor-arg name="serviceRegistry" ref="serviceRegistry"/>
+        <property name="clientTimeoutSeconds" value="180"/>
+    </bean>
+	<!-- RPC服务端配置  END-->
+
+	<!-- ================================================================================= -->
+
+	<!-- RPC客户端配置 -->
+	<!-- 线程池配置 -->
+	<bean id="RPCPool" class="java.util.concurrent.ThreadPoolExecutor">
 		<constructor-arg index="0" value="5" />
 		<constructor-arg index="1" value="10" />
 		<constructor-arg index="2" value="600" />
@@ -41,23 +64,34 @@
 		</constructor-arg>
 	</bean>
 
-    <bean id="rpcClient" class="com.nettyrpc.client.RpcClient">
-        <constructor-arg name="serviceDiscovery" ref="rpcServiceDiscovery"/>
-        <constructor-arg name="threadPoolExecutor" ref="RPCPool" />
-    </bean>
-    
+	<!-- 
+	客户端连接管理
+		构造参数
+			serviceAddress			连接地址 (集群模式时值为zk的地址)
+			cluster       			集群模式 (是否为集群模式,默认为false)
+		可配置项
+			connectorThreadPool		连接创建线程池
+			clientEventLoopGroup	客户端(Netty的Work)线程池			
+			connectionPerClient		为每个服务器地址创建并保持的连接数量 	1
+			connectTimeoutMillis	应用线程取RpcClient连接的超时时间		3000
+	-->
+	<bean id="connectManage" class="com.nettyrpc.client.ConnectManage">
+		<constructor-arg name="serviceAddress" value="${registry.address}" />
+		<constructor-arg name="cluster" value="true"/>
+	</bean>
+
+	<!-- 
+	Rpc客户端对象
+		构造参数
+			connectManage 			连接管理器
+		可配置项
+			requestIDCreater		消息ID生成器 默认使用 uuid
+			rpcCallbackThreadPool	rpc异步回调处理线程池
+			requestTimeoutMillis	rpc请求处理超时时间	300000
+	 -->
+	<bean id="rpcClient" class="com.nettyrpc.client.RpcClient">
+		<constructor-arg name="connectManage" ref="connectManage" />
+		<property name="rpcCallbackThreadPool" ref="RPCPool" />
+	</bean>    
     <!-- RPC客户端配置  END-->
-    
-    <!-- RPC服务端配置 -->
-
-    <bean id="serviceRegistry" class="com.nettyrpc.registry.ServiceRegistry">
-        <constructor-arg name="registryAddress" value="${registry.address}"/>
-    </bean>
-
-    <bean id="rpcServer" class="com.nettyrpc.server.RpcServer">
-        <constructor-arg name="serverAddress" value="${server.address}"/>
-        <constructor-arg name="serviceRegistry" ref="serviceRegistry"/>
-    </bean>
-	
-	<!-- RPC服务端配置  END-->
 </beans>
