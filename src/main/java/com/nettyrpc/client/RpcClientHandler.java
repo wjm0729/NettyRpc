@@ -9,8 +9,11 @@ import java.util.concurrent.CountDownLatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.nettyrpc.protocol.AsyncMessage;
+import com.nettyrpc.protocol.IMessage;
 import com.nettyrpc.protocol.RpcRequest;
 import com.nettyrpc.protocol.RpcResponse;
+import com.nettyrpc.protocol.SerializationUtil;
 
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -24,11 +27,11 @@ import io.netty.handler.timeout.IdleStateEvent;
  * Created by luxiaoxun on 2016-03-14.
  * @author jiangmin.wu
  */
-public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
+public class RpcClientHandler extends SimpleChannelInboundHandler<IMessage> {
     private static final Logger LOGGER = LoggerFactory.getLogger(RpcClientHandler.class);
 
     private ConcurrentHashMap<String, RPCFuture> pendingRPC = new ConcurrentHashMap<>();
-
+    private RpcClient rpcClient;
     private volatile Channel channel;
     private SocketAddress remotePeer;
 
@@ -65,13 +68,27 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
     }
 
     @Override
-    public void channelRead0(ChannelHandlerContext ctx, RpcResponse response) throws Exception {
-        String requestId = response.getRequestId();
-        RPCFuture rpcFuture = pendingRPC.get(requestId);
-        if (rpcFuture != null) {
-            pendingRPC.remove(requestId);
-            rpcFuture.done(response);
-        }
+    public void channelRead0(ChannelHandlerContext ctx, IMessage msg) throws Exception {
+    	if(msg instanceof RpcResponse) {
+    		RpcResponse response = (RpcResponse) msg;
+    		String requestId = response.getRequestId();
+            RPCFuture rpcFuture = pendingRPC.get(requestId);
+            if (rpcFuture != null) {
+                pendingRPC.remove(requestId);
+                rpcFuture.done(response);
+            }
+		} else if (msg instanceof AsyncMessage) {
+			String id = msg.getRequestId();
+			AsyncMessage message = (AsyncMessage) msg;
+			AsyncClientHandler handler = rpcClient.getAsyncHandlerMap().get(id);
+			if (handler != null) {
+				handler = SerializationUtil.objenesis.newInstance(handler.getClass());
+				handler.handMessage(message, ctx.channel());
+			} else {
+				LOGGER.error("async message handler {} not found", id);
+				AsyncClientHandler.DEFAULT.handMessage(message, channel);
+			}
+		}
     }
 
     @Override
@@ -115,6 +132,10 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
 		return rpcFuture;
 	}
 	
+	public void sendAsyncMessage(AsyncMessage message) {
+		channel.writeAndFlush(message);
+	}
+	
     public void cleanTimeoutRequest() {
         List<RPCFuture> list = null;
         for(RPCFuture f : pendingRPC.values()) {
@@ -134,5 +155,13 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
             }
         }
     }
+
+	public RpcClient getRpcClient() {
+		return rpcClient;
+	}
+
+	public void setRpcClient(RpcClient rpcClient) {
+		this.rpcClient = rpcClient;
+	}
 
 }

@@ -2,6 +2,8 @@ package com.nettyrpc.test.server;
 
 import com.nettyrpc.test.client.HelloService;
 import com.nettyrpc.test.client.Person;
+import com.example.Booking;
+import com.example.BookingStatus;
 import com.nettyrpc.server.RpcService;
 
 @RpcService(HelloService.class)
@@ -22,8 +24,10 @@ public class HelloServiceImpl implements HelloService {
 		return "int "+i;
 	}
 
-//	@Override
-//	public String hello(Integer i) {
-//		return "Integer "+i;
-//	}
+	@Override
+	public Booking getBook() {
+		Booking book = Booking.getDefaultInstance();
+		
+		return book;
+	}
 }

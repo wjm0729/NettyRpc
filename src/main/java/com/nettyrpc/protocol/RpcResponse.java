@@ -4,7 +4,7 @@ package com.nettyrpc.protocol;
  * RPC Response
  * @author huangyong
  */
-public class RpcResponse extends RpcMessage {
+public class RpcResponse extends AbastractMessage {
 
     private Throwable error;
     private Object result;

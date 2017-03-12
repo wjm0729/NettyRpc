@@ -101,7 +101,7 @@ public class RPCFuture implements Future<Object> {
     }
     
     public boolean isTimeout() {
-		return System.currentTimeMillis() - startTime >= RpcRequest.RPC_REQUEST_TIMEOUT;
+		return System.currentTimeMillis() - startTime >= rpcClient.getRequestTimeoutMillis();
 	}
     
     public String getRequestId() {

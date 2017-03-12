@@ -40,6 +40,8 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 public class ConnectManage {
     private static final Logger LOGGER = LoggerFactory.getLogger(ConnectManage.class);
 
+    private RpcClient rpcClient;
+    
     // 连接维护线程池
     private ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("Connection-Checker"));
     private ThreadPoolExecutor connectorThreadPool = null;
@@ -179,6 +181,7 @@ public class ConnectManage {
                         if (channelFuture.isSuccess()) {
                             LOGGER.debug("Successfully connect to remote server. remote peer = " + remotePeer);
                             RpcClientHandler handler = channelFuture.channel().pipeline().get(RpcClientHandler.class);
+                            handler.setRpcClient(rpcClient);
                             addHandler(handler);
                         }
                     }
@@ -258,5 +261,13 @@ public class ConnectManage {
 
 	public void setConnectionPerClient(int connectionPerClient) {
 		this.connectionPerClient = connectionPerClient;
+	}
+
+	public RpcClient getRpcClient() {
+		return rpcClient;
+	}
+
+	public void setRpcClient(RpcClient rpcClient) {
+		this.rpcClient = rpcClient;
 	}
 }

@@ -6,15 +6,19 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
+import com.nettyrpc.client.AsyncClientHandler;
 import com.nettyrpc.client.AsyncRPCCallback;
 import com.nettyrpc.client.ConnectManage;
 import com.nettyrpc.client.RPCFuture;
 import com.nettyrpc.client.RpcClient;
 import com.nettyrpc.client.proxy.IAsyncObjectProxy;
+import com.nettyrpc.protocol.AsyncMessage;
 import com.nettyrpc.registry.ServiceDiscovery;
 import com.nettyrpc.test.client.HelloPersonService;
 import com.nettyrpc.test.client.HelloService;
 import com.nettyrpc.test.client.Person;
+
+import io.netty.channel.Channel;
 
 /**
  * Created by luxiaoxun on 2016/3/17.
@@ -24,8 +28,9 @@ public class HATest {
 
 	public static void main(String[] args) throws Throwable {
 		//orderTest();
-		syncTest();
+		 syncTest();
 		//asyncTest();
+		
 	}
 	private static void orderTest() throws InterruptedException {
 		long start = System.currentTimeMillis();
@@ -64,9 +69,24 @@ public class HATest {
 		ConnectManage connectManage = new ConnectManage(1000, 1);
 		ServiceDiscovery serviceDiscovery = new ServiceDiscovery("10.1.6.72:2181", connectManage);
 		final RpcClient rpcClient = new RpcClient(serviceDiscovery);
-		final int count = 1000;
-		final CountDownLatch countDownLatch = new CountDownLatch(count);
+		final int count = 0;
+		final CountDownLatch countDownLatch = new CountDownLatch(count+1);
 		final HelloPersonService client = rpcClient.create(HelloPersonService.class);
+		
+		String id = "aaa";
+		
+		rpcClient.registerAsyncHandler(id, new AsyncClientHandler() {
+			@Override
+			public void handMessage(AsyncMessage message, Channel channel) {
+				System.err.println("!!!!!!!!!!!"+message+"!!!!!!!!!!!!!");
+			}
+		});
+		
+		AsyncMessage message = new AsyncMessage();
+		message.setRequestId(id);
+		message.setBody("AAAAA");
+		rpcClient.sendAsyncMessage(message);
+		
 		for (int i = 0; i < count; i++) {
 			try {
 				Thread.sleep(1000);

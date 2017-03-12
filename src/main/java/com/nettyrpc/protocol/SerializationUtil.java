@@ -7,14 +7,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.objenesis.Objenesis;
 import org.objenesis.ObjenesisStd;
 
-import com.dyuproject.protostuff.LinkedBuffer;
-import com.dyuproject.protostuff.ProtobufIOUtil;
-import com.dyuproject.protostuff.ProtostuffIOUtil;
-import com.dyuproject.protostuff.Schema;
-import com.dyuproject.protostuff.runtime.RuntimeSchema;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
+
+import io.protostuff.LinkedBuffer;
+import io.protostuff.ProtobufIOUtil;
+import io.protostuff.ProtostuffIOUtil;
+import io.protostuff.Schema;
+import io.protostuff.runtime.RuntimeSchema;
 
 /**
  * Serialization Util（Based on Protostuff）
@@ -24,7 +24,7 @@ import io.netty.buffer.ByteBufOutputStream;
  */
 public class SerializationUtil {
 	// 默认使用 protostuff
-	private static SerializeType SERIALIZE_TYPE = SerializeType.valueOf(System.getProperty("rpc.serialize.type", "PROTOSTUFF"));
+	private static SerializeType SERIALIZE_TYPE = SerializeType.valueOf(System.getProperty("rpc.serialize.type", "PROTOBUF"));
 
 	public enum SerializeType {
 		PROTOSTUFF, PROTOBUF
@@ -38,7 +38,7 @@ public class SerializationUtil {
 		}
 	};
 
-	private static Objenesis objenesis = new ObjenesisStd(true);
+	public final static Objenesis objenesis = new ObjenesisStd(true);
 
 	private SerializationUtil() {
 	}

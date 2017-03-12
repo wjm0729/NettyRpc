@@ -15,6 +15,8 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
+import com.google.common.collect.Maps;
+import com.nettyrpc.execution.ActionExecutor;
 import com.nettyrpc.protocol.PingPongHandler;
 import com.nettyrpc.protocol.RpcDecoder;
 import com.nettyrpc.protocol.RpcEncoder;
@@ -45,6 +47,10 @@ public class RpcServer implements ApplicationContextAware, InitializingBean, Dis
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RpcServer.class);
 
+    private ChannelFuture future;
+    private EventLoopGroup bossGroup;
+    private EventLoopGroup workerGroup;
+    
     private String serverAddress;
     private ServiceRegistry serviceRegistry;
     private Map<String, Object> handlerMap = new HashMap<>();
@@ -52,6 +58,10 @@ public class RpcServer implements ApplicationContextAware, InitializingBean, Dis
     private int core = Runtime.getRuntime().availableProcessors();
     // 默认 线程数 core * 2 -> core * 4, 队列长度 65535, 满溢丢弃策略
     private ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(core * 2, core * 4, 600L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(65535), new NamedThreadFactory("RpcServer"));
+    // 异步消息消费线程池
+    private ActionExecutor asyncActionExecutor = new ActionExecutor(threadPoolExecutor);
+    // 异步消息处理器
+    private Map<String, AsyncServerHandler> asyncServerHandlerMap = Maps.newConcurrentMap();
     // 多少秒没有读写事件就断开连接
     private int clientTimeoutSeconds = 180;
     private IRpcHandlerProxy rpcHandlerProxy = IRpcHandlerProxy.DEFAULT;
@@ -74,46 +84,39 @@ public class RpcServer implements ApplicationContextAware, InitializingBean, Dis
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        EventLoopGroup bossGroup = new NioEventLoopGroup();
-        EventLoopGroup workerGroup = new NioEventLoopGroup();
-        try {
-            ServerBootstrap bootstrap = new ServerBootstrap();
-            final RpcServer rpcServer = this;
-            bootstrap.group(bossGroup, workerGroup)
-            		.channel(NioServerSocketChannel.class)
-            		.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
-            		.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
-                    .childHandler(new ChannelInitializer<SocketChannel>() {
-                        @Override
-                        public void initChannel(SocketChannel channel) throws Exception {
-                            channel.pipeline()
-			                        .addLast(new LengthFieldBasedFrameDecoder(1024 * 1024 * 64, 0, 4, 0, 0))
-                                    .addLast(new RpcDecoder(RpcRequest.class))
-                                    .addLast(new RpcEncoder(RpcResponse.class))
-                                    .addLast(new IdleStateHandler(clientTimeoutSeconds, clientTimeoutSeconds, clientTimeoutSeconds, TimeUnit.SECONDS))
-                                    .addLast(new TimeoutHandler())
-                                    .addLast(new PingPongHandler())
-                                    .addLast(new RpcHandler(rpcServer));
-                        }
-                    })
-                    .option(ChannelOption.SO_BACKLOG, 128)
-                    .childOption(ChannelOption.SO_KEEPALIVE, true);
+    	bossGroup = new NioEventLoopGroup();
+    	workerGroup = new NioEventLoopGroup();
+        ServerBootstrap bootstrap = new ServerBootstrap();
+        final RpcServer rpcServer = this;
+        bootstrap.group(bossGroup, workerGroup)
+        		.channel(NioServerSocketChannel.class)
+        		.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+        		.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+                .childHandler(new ChannelInitializer<SocketChannel>() {
+                    @Override
+                    public void initChannel(SocketChannel channel) throws Exception {
+                        channel.pipeline()
+		                        .addLast(new LengthFieldBasedFrameDecoder(1024 * 1024 * 64, 1, 4, 0, 0))
+                                .addLast(new RpcDecoder(RpcRequest.class))
+                                .addLast(new RpcEncoder(RpcResponse.class))
+                                .addLast(new IdleStateHandler(clientTimeoutSeconds, clientTimeoutSeconds, clientTimeoutSeconds, TimeUnit.SECONDS))
+                                .addLast(new TimeoutHandler())
+                                .addLast(new PingPongHandler())
+                                .addLast(new RpcHandler(rpcServer));
+                    }
+                })
+                .option(ChannelOption.SO_BACKLOG, 128)
+                .childOption(ChannelOption.SO_KEEPALIVE, true);
 
-            String[] array = serverAddress.split(":");
-            String host = array[0];
-            int port = Integer.parseInt(array[1]);
+        String[] array = serverAddress.split(":");
+        String host = array[0];
+        int port = Integer.parseInt(array[1]);
 
-            ChannelFuture future = bootstrap.bind(host, port).sync();
-            LOGGER.debug("Server started on port {}", port);
+        future = bootstrap.bind(host, port).sync();
+        LOGGER.debug("Server started on port {}", port);
 
-            if (serviceRegistry != null) {
-                serviceRegistry.register(serverAddress);
-            }
-
-            future.channel().closeFuture().sync();
-        } finally {
-            workerGroup.shutdownGracefully();
-            bossGroup.shutdownGracefully();
+        if (serviceRegistry != null) {
+            serviceRegistry.register(serverAddress);
         }
     }
 
@@ -133,9 +136,19 @@ public class RpcServer implements ApplicationContextAware, InitializingBean, Dis
 
 	@Override
 	public void destroy() throws Exception {
-		if (!threadPoolExecutor.isShutdown()) {
-			threadPoolExecutor.shutdown();
+		try {
+			if (!threadPoolExecutor.isShutdown()) {
+				threadPoolExecutor.shutdown();
+			}
+			future.channel().close().awaitUninterruptibly();
+		} finally {
+			workerGroup.shutdownGracefully();
+			bossGroup.shutdownGracefully();
 		}
+	}
+	
+	public void registerAsyncServerHandler(String id, AsyncServerHandler handler) {
+		asyncServerHandlerMap.put(id, handler);
 	}
 
 	// for spring
@@ -153,5 +166,17 @@ public class RpcServer implements ApplicationContextAware, InitializingBean, Dis
 
 	public void setRpcHandlerProxy(IRpcHandlerProxy rpcHandlerProxy) {
 		this.rpcHandlerProxy = rpcHandlerProxy;
+	}
+
+	public ActionExecutor getAsyncActionExecutor() {
+		return asyncActionExecutor;
+	}
+
+	public void setAsyncActionExecutor(ActionExecutor asyncActionExecutor) {
+		this.asyncActionExecutor = asyncActionExecutor;
+	}
+
+	public Map<String, AsyncServerHandler> getAsyncServerHandlerMap() {
+		return asyncServerHandlerMap;
 	}
 }

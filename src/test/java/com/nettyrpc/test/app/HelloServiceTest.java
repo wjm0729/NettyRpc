@@ -5,6 +5,8 @@ import static org.hamcrest.core.IsEqual.equalTo;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -15,18 +17,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.google.common.collect.Maps;
+import com.nettyrpc.client.AsyncClientHandler;
 import com.nettyrpc.client.RPCFuture;
 import com.nettyrpc.client.RpcClient;
 import com.nettyrpc.client.proxy.IAsyncObjectProxy;
+import com.nettyrpc.protocol.AsyncMessage;
 import com.nettyrpc.registry.ServiceDiscovery;
 import com.nettyrpc.test.client.HelloPersonService;
 import com.nettyrpc.test.client.HelloService;
 import com.nettyrpc.test.client.Person;
 
+import io.netty.channel.Channel;
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = "classpath:client-spring.xml")
 public class HelloServiceTest {
-
+	
     @Autowired
     private RpcClient rpcClient;
     
@@ -41,6 +48,39 @@ public class HelloServiceTest {
 			rpcClient.stop();
 		}
 	}
+    
+    @Test
+    public void asyncMessage() throws Throwable {
+    	final CountDownLatch latch = new CountDownLatch(2);
+    	String id1 = "async_msg_id1";
+    	String id2 = "async_msg_id2";
+    	
+    	final Map<String, String> m = Maps.newHashMap();
+    	
+    	AsyncClientHandler h = new AsyncClientHandler() {
+			@Override
+			public void handMessage(AsyncMessage message, Channel channel) {
+				m.put(message.getRequestId(), message.getRequestId());
+				latch.countDown();
+			}
+		};
+		
+		rpcClient.registerAsyncHandler(id1, h);
+    	rpcClient.registerAsyncHandler(id2, h);
+    	
+    	AsyncMessage msg = new AsyncMessage();
+    	msg.setRequestId(id1);
+    	rpcClient.sendAsyncMessage(msg);
+    	
+    	AsyncMessage msg2 = new AsyncMessage();
+    	msg2.setRequestId(id2);
+    	rpcClient.sendAsyncMessage(msg2);
+    	
+    	latch.await();
+    	
+    	Assert.assertEquals(m.get(id1), id1);
+    	Assert.assertEquals(m.get(id2), id2);
+    }
 
     @Test
     public void helloTest1() {
