@@ -113,7 +113,7 @@ public class ConnectManage {
 			public void run() {
 				try {
 					for (RpcClientHandler handler : connectedHandlers) {
-						Channel channel = handler.getChannel();
+						Channel channel = handler.getSession().getChannel();
 						if (channel.isActive()) {
 							handler.cleanTimeoutRequest();
 						} else {
@@ -213,15 +213,16 @@ public class ConnectManage {
 	}
 
 	private void addHandler(RpcClientHandler handler) {
-		InetSocketAddress remoteAddress = (InetSocketAddress) handler.getChannel().remoteAddress();
+		InetSocketAddress remoteAddress = (InetSocketAddress) handler.getSession().getRemotePeer();
+		Channel channel = handler.getSession().getChannel();
 		if (connectedServerNodes.get(remoteAddress).size() < connectionPerClient) {
 			connectedHandlers.add(handler);
 			connectedServerNodes.put(remoteAddress, handler);
 			signalAvailableHandler();
-			LOGGER.info("new rpc client {} {}", handler.getChannel(), connectedHandlers.size());
+			LOGGER.info("new rpc client {} {}", channel, connectedHandlers.size());
 		} else {
 			handler.close();
-			LOGGER.info("drop rpc client {} {}", handler.getChannel(), connectedHandlers.size());
+			LOGGER.info("drop rpc client {} {}", channel, connectedHandlers.size());
 		}
 	}
 
@@ -263,6 +264,44 @@ public class ConnectManage {
 		int index = (roundRobin.getAndAdd(1) + size) % size;
 		RpcClientHandler handler = handlers.get(index);
 		LOGGER.debug("choose rpc handler index {}", index);
+		return handler;
+	}
+	
+	@SuppressWarnings("unchecked")
+	public RpcClientHandler chooseHandler(SocketAddress remotePeer) {
+		CopyOnWriteArrayList<RpcClientHandler> handlers = (CopyOnWriteArrayList<RpcClientHandler>) this.connectedHandlers.clone();
+		int size = handlers.size();
+		while (isRuning && size <= 0) {
+			try {
+				boolean available = waitingForHandler();
+				if (available) {
+					handlers = (CopyOnWriteArrayList<RpcClientHandler>) this.connectedHandlers.clone();
+					size = handlers.size();
+				}
+			} catch (InterruptedException e) {
+				LOGGER.error("Waiting for available node is interrupted! ", e);
+				throw new RuntimeException("Can't connect any servers!", e);
+			}
+		}
+		
+		RpcClientHandler handler = null;
+		if(connectionPerClient > 1) {
+			List<RpcClientHandler> list = Lists.newArrayList();
+			for(RpcClientHandler h : handlers) {
+				if(h.getRemotePeer().equals(remotePeer)) {
+					list.add(h);
+				}
+			}
+			size = list.size();
+			int index = (roundRobin.getAndAdd(1) + size) % size;
+			handler = list.get(index);
+		} else {
+			for(RpcClientHandler h : handlers) {
+				if(h.getRemotePeer().equals(remotePeer)) {
+					handler = h;
+				}
+			}
+		}
 		return handler;
 	}
 

@@ -15,7 +15,6 @@ import com.nettyrpc.protocol.RpcRequest;
 import com.nettyrpc.protocol.RpcResponse;
 
 import io.netty.buffer.Unpooled;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -31,21 +30,19 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<IMessage> {
 
     private ConcurrentHashMap<String, RPCFuture> pendingRPC = new ConcurrentHashMap<>();
     private RpcClient rpcClient;
-    private volatile Channel channel;
-    private SocketAddress remotePeer;
+    private volatile ClientSession session;
 
-    public Channel getChannel() {
-        return channel;
+    public ClientSession getSession() {
+        return session;
     }
 
     public SocketAddress getRemotePeer() {
-        return remotePeer;
+        return session.getRemotePeer();
     }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         super.channelActive(ctx);
-        this.remotePeer = this.channel.remoteAddress();
     }
     
     @Override
@@ -63,7 +60,7 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<IMessage> {
     @Override
     public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
         super.channelRegistered(ctx);
-        this.channel = ctx.channel();
+        this.session = new ClientSession(ctx.channel());
     }
 
     @Override
@@ -82,10 +79,10 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<IMessage> {
 			AsyncClientHandler handler = rpcClient.getAsyncHandlerMap().get(id);
 			if (handler != null) {
 //				handler = SerializationUtil.objenesis.newInstance(handler.getClass());
-				handler.handMessage(message, ctx.channel());
+				handler.handMessage(message, session);
 			} else {
 				LOGGER.error("async message handler {} not found", id);
-				AsyncClientHandler.DEFAULT.handMessage(message, channel);
+				AsyncClientHandler.DEFAULT.handMessage(message, session);
 			}
 		}
     }
@@ -114,14 +111,14 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<IMessage> {
 	}
 
     public void close() {
-        channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
+        session.getChannel().writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
     }
 
 	public RPCFuture sendRequest(RpcRequest request, RpcClient rpcClient) throws InterruptedException {
 		final CountDownLatch latch = new CountDownLatch(1);
 		RPCFuture rpcFuture = new RPCFuture(request, rpcClient);
 		pendingRPC.put(request.getRequestId(), rpcFuture);
-		channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
+		session.getChannel().writeAndFlush(request).addListener(new ChannelFutureListener() {
 			@Override
 			public void operationComplete(ChannelFuture future) {
 				latch.countDown();
@@ -132,7 +129,7 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<IMessage> {
 	}
 	
 	public void sendAsyncMessage(AsyncMessage message) {
-		channel.writeAndFlush(message);
+		session.sendAsyncMessage(message);
 	}
 	
     public void cleanTimeoutRequest() {

@@ -8,6 +8,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 import com.nettyrpc.client.AsyncClientHandler;
 import com.nettyrpc.client.AsyncRPCCallback;
+import com.nettyrpc.client.ClientSession;
 import com.nettyrpc.client.ConnectManage;
 import com.nettyrpc.client.RPCFuture;
 import com.nettyrpc.client.RpcClient;
@@ -78,7 +79,7 @@ public class HATest {
 		
 		rpcClient.registerAsyncHandler(id, new AsyncClientHandler() {
 			@Override
-			public void handMessage(AsyncMessage message, Channel channel) {
+			public void handMessage(AsyncMessage message, ClientSession session) {
 				System.err.println("!!!!!!!!!!!"+message+"!!!!!!!!!!!!!");
 			}
 		});

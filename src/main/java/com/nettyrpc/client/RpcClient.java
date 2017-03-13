@@ -18,6 +18,8 @@ import com.nettyrpc.protocol.AsyncMessage;
 import com.nettyrpc.protocol.id.IRequestIDCreater;
 import com.nettyrpc.thread.NamedThreadFactory;
 
+import io.netty.channel.Channel;
+
 /**
  * RPC Client（Create RPC proxy）
  * 
@@ -71,8 +73,10 @@ public class RpcClient implements InitializingBean {
 		asyncHandlerMap.put(id, handler);
 	}
 	
-	public void sendAsyncMessage(AsyncMessage message) {
-		connectManage.chooseHandler().sendAsyncMessage(message);
+	public ClientSession sendAsyncMessage(AsyncMessage message) {
+		RpcClientHandler client = connectManage.chooseHandler();
+		client.sendAsyncMessage(message);
+		return client.getSession();
 	}
 
 	public void submit(Runnable task) {

@@ -15,6 +15,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Maps;
 import com.nettyrpc.client.AsyncClientHandler;
+import com.nettyrpc.client.ClientSession;
 import com.nettyrpc.client.ConnectManage;
 import com.nettyrpc.client.RPCFuture;
 import com.nettyrpc.client.RpcClient;
@@ -27,8 +28,6 @@ import com.nettyrpc.test.client.HelloService;
 import com.nettyrpc.test.client.Person;
 import com.nettyrpc.test.server.HelloPersonServiceImpl;
 import com.nettyrpc.test.server.HelloServiceImpl;
-
-import io.netty.channel.Channel;
 
 //@RunWith(SpringJUnit4ClassRunner.class)
 //@ContextConfiguration(locations = "classpath:client-spring.xml")
@@ -45,7 +44,7 @@ public class HARpcClientTest {
     	if(cluster)
     	// 集群模式
     	{
-    		String registryAddress = "192.168.1.105:4180,192.168.1.105:4181,192.168.1.105:4182";
+    		String registryAddress = "10.1.6.72:2181";
 			ServiceRegistry registry = new ServiceRegistry(registryAddress);
     		registry.setZkTimeoutMillis(5000);
     		
@@ -91,7 +90,7 @@ public class HARpcClientTest {
     	
     	AsyncClientHandler h = new AsyncClientHandler() {
 			@Override
-			public void handMessage(AsyncMessage message, Channel channel) {
+			public void handMessage(AsyncMessage message, ClientSession session) {
 				m.put(message.getRequestId(), message.getRequestId());
 				latch.countDown();
 			}
