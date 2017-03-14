@@ -75,7 +75,9 @@ public class ConnectManage {
 
 	private boolean cluster = false;
 	private String serviceAddress;
+	
 	private ServiceDiscovery serviceDiscovery;
+	private String zkRegistryPath = "/registry";
 	
 	public ConnectManage(String serviceAddress) {
 		this(serviceAddress, true);
@@ -344,12 +346,19 @@ public class ConnectManage {
 		this.connectTimeoutMillis = connectTimeoutMillis;
 	}
 
+	public void setZkRegistryPath(String zkRegistryPath) {
+		this.zkRegistryPath = zkRegistryPath;
+	}
+
+	/**
+	 * 服务发现者
+	 * @author jiangmin.wu 
+	 */
 	class ServiceDiscovery {
 		private String registryAddress;
 		private ZooKeeper zookeeper;
 
 		private int zkTimeoutMillis = 5000;
-		private String zkRegistryPath = "/registry";
 
 		private CountDownLatch latch = new CountDownLatch(1);
 		private volatile List<String> dataList = new ArrayList<>();

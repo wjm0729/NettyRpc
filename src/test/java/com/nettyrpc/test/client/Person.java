@@ -1,7 +1,6 @@
 package com.nettyrpc.test.client;
 
 public class Person {
-
     private String firstName;
     private String lastName;
 

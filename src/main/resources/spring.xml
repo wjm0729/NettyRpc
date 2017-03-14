@@ -74,6 +74,7 @@
 			clientEventLoopGroup	客户端(Netty的Work)线程池			
 			connectionPerClient		为每个服务器地址创建并保持的连接数量 	1
 			connectTimeoutMillis	应用线程取RpcClient连接的超时时间		3000
+			zkRegistryPath			服务注册路径 							/registry
 	-->
 	<bean id="connectManage" class="com.nettyrpc.client.ConnectManage">
 		<constructor-arg name="serviceAddress" value="${registry.address}" />

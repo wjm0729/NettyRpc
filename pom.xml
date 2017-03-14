@@ -118,21 +118,45 @@
 					<encoding>utf-8</encoding>
 				</configuration>
 			</plugin>
+						
 			
-			<plugin>
-				<artifactId>protostuff-maven-plugin</artifactId>
-				<groupId>io.protostuff</groupId>
-				<version>2.0.0-alpha26</version>
-				<executions>
-					<execution>
-						<id>generate-java-sources</id>
-						<phase>generate-sources</phase>
-						<goals>
-							<goal>java</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
+            <plugin>
+                <groupId>io.protostuff</groupId>
+                <artifactId>protostuff-maven-plugin</artifactId>
+                <version>2.0.0-alpha26</version>
+
+                <configuration>
+                    <protoModules>
+                        <protoModule>
+                            <source>src/main/proto</source>
+                            <outputDir>target/generated-sources/proto</outputDir>
+                            <output>java_bean</output>
+                            <options>
+                                <property>
+                                    <name>generate_field_map</name>
+                                    <value>true</value>
+                                </property>
+                            </options>
+                        </protoModule>
+                    </protoModules>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>generate-sources</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+			
+			
+			
+			
+			
+			
+			
 		</plugins>
 	</build>
 
