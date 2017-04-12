@@ -28,7 +28,7 @@ import io.netty.handler.timeout.IdleStateEvent;
 public class RpcClientHandler extends SimpleChannelInboundHandler<IMessage> {
     private static final Logger LOGGER = LoggerFactory.getLogger(RpcClientHandler.class);
 
-    private ConcurrentHashMap<String, RPCFuture> pendingRPC = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, RpcFuture> pendingRPC = new ConcurrentHashMap<>();
     private RpcClient rpcClient;
     private volatile ClientSession session;
 
@@ -51,7 +51,7 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<IMessage> {
         
         LOGGER.info("client inactive cancel all request {} channel {}", pendingRPC.size(), ctx.channel());
         
-        for(RPCFuture f : pendingRPC.values()) {
+        for(RpcFuture f : pendingRPC.values()) {
             f.cancel(false);
         }
         pendingRPC.clear();
@@ -68,10 +68,12 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<IMessage> {
     	if(msg instanceof RpcResponse) {
     		RpcResponse response = (RpcResponse) msg;
     		String requestId = response.getRequestId();
-            RPCFuture rpcFuture = pendingRPC.get(requestId);
+            RpcFuture rpcFuture = pendingRPC.get(requestId);
             if (rpcFuture != null) {
                 pendingRPC.remove(requestId);
                 rpcFuture.done(response);
+            } else {
+            	LOGGER.info("can't find RpcFuture of {}", response);
             }
 		} else if (msg instanceof AsyncMessage) {
 			String id = msg.getRequestId();
@@ -114,9 +116,9 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<IMessage> {
         session.getChannel().writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
     }
 
-	public RPCFuture sendRequest(RpcRequest request, RpcClient rpcClient) throws InterruptedException {
+	public RpcFuture sendRequest(RpcRequest request, RpcClient rpcClient, SocketAddress socketAddress) throws InterruptedException {
 		final CountDownLatch latch = new CountDownLatch(1);
-		RPCFuture rpcFuture = new RPCFuture(request, rpcClient);
+		RpcFuture rpcFuture = new RpcFuture(request, rpcClient, this, socketAddress);
 		pendingRPC.put(request.getRequestId(), rpcFuture);
 		session.getChannel().writeAndFlush(request).addListener(new ChannelFutureListener() {
 			@Override
@@ -132,9 +134,9 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<IMessage> {
 		session.sendAsyncMessage(message);
 	}
 	
-    public void cleanTimeoutRequest() {
-        List<RPCFuture> list = null;
-        for(RPCFuture f : pendingRPC.values()) {
+    public void checkTimeoutRequest() {
+        List<RpcFuture> list = null;
+        for(RpcFuture f : pendingRPC.values()) {
             if(f.isTimeout()) {
             	if(list == null) {
             		list = new ArrayList<>();
@@ -144,7 +146,7 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<IMessage> {
         }
         
         if(list != null) {
-        	for(RPCFuture f : list) {
+        	for(RpcFuture f : list) {
                 if(!f.isDone() && f.cancel(false)) {
                     pendingRPC.remove(f.getRequestId());
                 }

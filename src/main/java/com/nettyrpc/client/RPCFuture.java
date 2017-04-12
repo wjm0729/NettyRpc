@@ -1,5 +1,7 @@
 package com.nettyrpc.client;
 
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -15,30 +17,34 @@ import org.slf4j.LoggerFactory;
 import com.nettyrpc.protocol.RpcRequest;
 import com.nettyrpc.protocol.RpcResponse;
 
+import io.netty.channel.Channel;
+
 /**
  * RPCFuture for async RPC call
  * Created by luxiaoxun on 2016-03-15.
  * @author jiangmin.wu
  */
-public class RPCFuture implements Future<Object> {
-    private static final Logger LOGGER = LoggerFactory.getLogger(RPCFuture.class);
+public class RpcFuture implements Future<Object> {
+    private static final Logger LOGGER = LoggerFactory.getLogger(RpcFuture.class);
 
     private Sync sync;
     private RpcClient rpcClient;
+    private RpcClientHandlerWraper handlerWraper;
+    
     private RpcRequest request;
     private RpcResponse response;
     private long startTime;
-
-    private long responseTimeThreshold = 5000;
+    private volatile byte retryTimes = 0;
 
     private List<AsyncRPCCallback> pendingCallbacks = new ArrayList<AsyncRPCCallback>();
     private ReentrantLock lock = new ReentrantLock();
 
-    public RPCFuture(RpcRequest request, RpcClient rpcClient) {
+    public RpcFuture(RpcRequest request, RpcClient rpcClient, RpcClientHandler handler, SocketAddress socketAddress) {
         this.sync = new Sync();
         this.request = request;
         this.rpcClient = rpcClient;
         this.startTime = System.currentTimeMillis();
+        this.handlerWraper = new RpcClientHandlerWraper(socketAddress, handler);
     }
 
     @Override
@@ -50,38 +56,75 @@ public class RPCFuture implements Future<Object> {
     public Object get() throws InterruptedException, ExecutionException {
         sync.acquire(-1);
         if (this.response != null) {
-        	Throwable error = response.getError();
-        	if(error != null) {
-        		throw new ExecutionException(error);
-        	}
-            return this.response.getResult();
+        	return getResult();
         } else {
         	if(isTimeout()) {
-        		throw new RuntimeException("Timeout exception. Request id: " + this.request.getRequestId()
-                + ". Request class name: " + this.request.getClassName()
-                + ". Request method: " + this.request.getMethodName());
+        		if(retryTimes < rpcClient.getRetryTimes()) {
+        			LOGGER.info("retry request {}", request);
+        			checkHandler();
+        			return getHandler().sendRequest(request, rpcClient, getRemotePeer()).get();
+        		} else {
+            		throw new RuntimeException("Timeout exception. Request id: " + this.request.getRequestId()
+                    + ". Request class name: " + this.request.getClassName()
+                    + ". Request method: " + this.request.getMethodName());
+        		}
         	}
             return null;
         }
     }
+
+	private RpcClientHandler getHandler() {
+		return handlerWraper.getHandler();
+	}
+
+	private SocketAddress getRemotePeer() {
+		return getHandler().getRemotePeer();
+	}
+
+	private void checkHandler() {
+		SocketAddress remotePeer = handlerWraper.getRemotePeer();
+		if(remotePeer != null) {// 固定服务器的
+			handlerWraper.setHandler(rpcClient.getConnectManage().chooseHandler(remotePeer));
+		} else {// 随机的
+			Channel channel = getHandler().getSession().getChannel();
+			if(!channel.isActive() || !channel.isWritable()) {
+				handlerWraper.setHandler(rpcClient.getConnectManage().chooseHandler());
+			}
+		}
+	}
+
+	private Object getResult() throws ExecutionException {
+		Throwable error = response.getError();
+		if(error != null) {
+			throw new ExecutionException(error);
+		}
+		// slow log
+        long responseTime = System.currentTimeMillis() - startTime;
+        if (responseTime >= rpcClient.getSlowResponseMillis()) {
+            LOGGER.warn("Service response time is too slow. Request id = " + response.getRequestId() + ". Response Time = " + responseTime + "ms");
+        }
+		return this.response.getResult();
+	}
 
     @Override
     public Object get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         boolean success = sync.tryAcquireNanos(-1, unit.toNanos(timeout));
         if (success) {
             if (this.response != null) {
-            	Throwable error = response.getError();
-            	if(error != null) {
-            		throw new ExecutionException(error);
-            	}
-                return this.response.getResult();
+            	return getResult();
             } else {
                 return null;
             }
         } else {
-            throw new RuntimeException("Timeout exception. Request id: " + this.request.getRequestId()
-                    + ". Request class name: " + this.request.getClassName()
-                    + ". Request method: " + this.request.getMethodName());
+        	if(retryTimes < rpcClient.getRetryTimes()) {
+        		LOGGER.info("retry request {}", request);
+        		checkHandler();
+    			return getHandler().sendRequest(request, rpcClient, getRemotePeer()).get(timeout, unit);
+    		} else {
+	            throw new TimeoutException("Timeout exception. Request id: " + this.request.getRequestId()
+	                    + ". Request class name: " + this.request.getClassName()
+	                    + ". Request method: " + this.request.getMethodName());
+    		}
         }
     }
 
@@ -104,6 +147,10 @@ public class RPCFuture implements Future<Object> {
     public boolean isTimeout() {
 		return System.currentTimeMillis() - startTime >= rpcClient.getRequestTimeoutMillis();
 	}
+
+	public long getStartTime() {
+		return startTime;
+	}
     
     public String getRequestId() {
     	return request.getRequestId();
@@ -113,11 +160,6 @@ public class RPCFuture implements Future<Object> {
         this.response = reponse;
         sync.release(Sync.done);
         invokeCallbacks();
-        // Threshold
-        long responseTime = System.currentTimeMillis() - startTime;
-        if (responseTime > this.responseTimeThreshold) {
-            LOGGER.warn("Service response time is too slow. Request id = " + reponse.getRequestId() + ". Response Time = " + responseTime + "ms");
-        }
     }
 
     private void invokeCallbacks() {
@@ -131,7 +173,7 @@ public class RPCFuture implements Future<Object> {
         }
     }
 
-    public RPCFuture addCallback(AsyncRPCCallback callback) {
+    public RpcFuture addCallback(AsyncRPCCallback callback) {
         lock.lock();
         try {
             if (isDone()) {
@@ -169,7 +211,7 @@ public class RPCFuture implements Future<Object> {
         private static final int pending = 0;
 
         protected boolean tryAcquire(int acquires) {
-            return getState() == done ? true : false;
+            return (getState() == done ||  getState() == cancel)? true : false;
         }
 
 		protected boolean tryRelease(int state) {

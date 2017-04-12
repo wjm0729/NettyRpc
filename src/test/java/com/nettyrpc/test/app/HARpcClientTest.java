@@ -17,7 +17,7 @@ import com.google.common.collect.Maps;
 import com.nettyrpc.client.AsyncClientHandler;
 import com.nettyrpc.client.ClientSession;
 import com.nettyrpc.client.ConnectManage;
-import com.nettyrpc.client.RPCFuture;
+import com.nettyrpc.client.RpcFuture;
 import com.nettyrpc.client.RpcClient;
 import com.nettyrpc.client.proxy.IAsyncObjectProxy;
 import com.nettyrpc.protocol.AsyncMessage;
@@ -33,8 +33,11 @@ import com.nettyrpc.test.server.HelloServiceImpl;
 //@ContextConfiguration(locations = "classpath:client-spring.xml")
 public class HARpcClientTest {
 
+	private static final String zk_addr = "127.0.0.1:2181";// "10.1.6.72:2181";
+	private static final String server_addr = "127.0.0.1:18866";
 	private boolean cluster = true;
-//    @Autowired
+
+	//    @Autowired
     private RpcClient rpcClient;
     private RpcServer rpcServer;
     
@@ -44,11 +47,11 @@ public class HARpcClientTest {
     	if(cluster)
     	// 集群模式
     	{
-    		String registryAddress = "10.1.6.72:2181";
+    		String registryAddress = zk_addr;
 			ServiceRegistry registry = new ServiceRegistry(registryAddress);
     		registry.setZkTimeoutMillis(5000);
     		
-    		rpcServer = new RpcServer("127.0.0.1:18866", registry);
+    		rpcServer = new RpcServer(server_addr, registry);
     		rpcServer.registerRpcService(HelloService.class.getName(), new HelloServiceImpl());
     		rpcServer.registerRpcService(HelloPersonService.class.getName(), new HelloPersonServiceImpl());
     		rpcServer.afterPropertiesSet();
@@ -62,12 +65,12 @@ public class HARpcClientTest {
     	else
     	// 非集群模式
     	{
-    		rpcServer = new RpcServer("127.0.0.1:18866");
+    		rpcServer = new RpcServer(server_addr);
     		rpcServer.registerRpcService(HelloService.class.getName(), new HelloServiceImpl());
     		rpcServer.registerRpcService(HelloPersonService.class.getName(), new HelloPersonServiceImpl());
     		rpcServer.afterPropertiesSet();
     		
-    		String serviceAddress = "127.0.0.1:18866";
+    		String serviceAddress = server_addr;
     		ConnectManage connectManage = new ConnectManage(serviceAddress, false);
     		rpcClient = new RpcClient(connectManage);
     		rpcClient.afterPropertiesSet();
@@ -154,7 +157,7 @@ public class HARpcClientTest {
     @Test
     public void helloFutureTest1() throws Throwable {
         IAsyncObjectProxy helloService = rpcClient.createAsync(HelloService.class);
-        RPCFuture result = helloService.call("hello", "World");
+        RpcFuture result = helloService.call("hello", "World");
         Assert.assertEquals("Hello! World", result.get());
     }
 
@@ -162,7 +165,7 @@ public class HARpcClientTest {
     public void helloFutureTest2() throws Throwable {
         IAsyncObjectProxy helloService = rpcClient.createAsync(HelloService.class);
         Person person = new Person("Yong", "Huang");
-        RPCFuture result = helloService.call("hello", person);
+        RpcFuture result = helloService.call("hello", person);
         Assert.assertEquals("Hello! Yong Huang", result.get());
     }
 
@@ -170,7 +173,7 @@ public class HARpcClientTest {
     public void helloPersonFutureTest1() throws Throwable {
         IAsyncObjectProxy helloPersonService = rpcClient.createAsync(HelloPersonService.class);
         int num = 5;
-        RPCFuture result = helloPersonService.call("GetTestPerson", "xiaoming", num);
+        RpcFuture result = helloPersonService.call("GetTestPerson", "xiaoming", num);
         List<Person> persons = (List<Person>) result.get();
         List<Person> expectedPersons = new ArrayList<>();
         for (int i = 0; i < num; i++) {

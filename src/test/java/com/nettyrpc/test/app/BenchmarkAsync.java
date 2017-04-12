@@ -3,7 +3,7 @@ package com.nettyrpc.test.app;
 import java.util.concurrent.TimeUnit;
 
 import com.nettyrpc.client.ConnectManage;
-import com.nettyrpc.client.RPCFuture;
+import com.nettyrpc.client.RpcFuture;
 import com.nettyrpc.client.RpcClient;
 import com.nettyrpc.client.proxy.IAsyncObjectProxy;
 import com.nettyrpc.test.client.HelloService;
@@ -29,7 +29,7 @@ public class BenchmarkAsync {
                     for (int i = 0; i < requestNum; i++) {
                         try {
                             IAsyncObjectProxy client = rpcClient.createAsync(HelloService.class);
-                            RPCFuture helloFuture = client.call("hello", Integer.toString(i));
+                            RpcFuture helloFuture = client.call("hello", Integer.toString(i));
                             String result = (String) helloFuture.get(3000, TimeUnit.MILLISECONDS);
                             //System.out.println(result);
                             if (!result.equals("Hello! " + i))

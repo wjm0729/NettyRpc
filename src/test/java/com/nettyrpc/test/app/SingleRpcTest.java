@@ -5,7 +5,7 @@ import java.util.concurrent.CountDownLatch;
 
 import com.nettyrpc.client.AsyncRPCCallback;
 import com.nettyrpc.client.ConnectManage;
-import com.nettyrpc.client.RPCFuture;
+import com.nettyrpc.client.RpcFuture;
 import com.nettyrpc.client.RpcClient;
 import com.nettyrpc.client.proxy.IAsyncObjectProxy;
 import com.nettyrpc.test.client.HelloPersonService;
@@ -24,7 +24,7 @@ public class SingleRpcTest {
         try {
             IAsyncObjectProxy client = rpcClient.createAsync(HelloPersonService.class);
             int num = 5;
-            RPCFuture helloPersonFuture = client.call("GetTestPerson", "xiaoming", num);
+            RpcFuture helloPersonFuture = client.call("GetTestPerson", "xiaoming", num);
             helloPersonFuture.addCallback(new AsyncRPCCallback() {
                 @Override
                 public void success(Object result) {

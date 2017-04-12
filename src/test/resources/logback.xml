@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="5 seconds">
+  <appender name="fileAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <encoding>UTF-8</encoding>
+    <file>logs/battleserver.log</file>
+    <encoder>
+      <pattern>%d | %-5level | %thread | %logger{40} | %msg%n</pattern>
+    </encoder>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>logs/dataserver.log.%d{yyyy-MM-dd-HH}</fileNamePattern>
+    </rollingPolicy>
+  </appender>
+  
+   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+ 
+  <logger name="com.elex.cok.remote.server.RemoteServer" additivity="false" level="ERROR">
+    <appender-ref ref="fileAppender"/>
+  </logger>
+
+  <root level="INFO">
+    <appender-ref ref="STDOUT"/>
+  </root>
+</configuration>

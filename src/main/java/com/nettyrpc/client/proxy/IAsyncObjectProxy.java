@@ -1,6 +1,6 @@
 package com.nettyrpc.client.proxy;
 
-import com.nettyrpc.client.RPCFuture;
+import com.nettyrpc.client.RpcFuture;
 
 /**
  * Created by luxiaoxun on 2016/3/16.
@@ -28,5 +28,5 @@ public interface IAsyncObjectProxy {
 	 * @return
 	 * @throws InterruptedException
 	 */
-    public RPCFuture call(String funcName, Object... args) throws InterruptedException;
+    public RpcFuture call(String funcName, Object... args) throws InterruptedException;
 }

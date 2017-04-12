@@ -6,7 +6,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.collections4.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -66,7 +65,7 @@ public class RpcServer implements ApplicationContextAware, InitializingBean, Dis
     // 多少秒没有读写事件就断开连接
     private int clientTimeoutSeconds = 180;
     // 处理委托
-    private IRpcHandlerDelegate rpcHandlerDelegate = IRpcHandlerDelegate.DEFAULT;
+    private IRpcRequestHandler rpcRequestHandler = IRpcRequestHandler.DEFAULT;
     
     /**
      * 不需要集群
@@ -85,7 +84,7 @@ public class RpcServer implements ApplicationContextAware, InitializingBean, Dis
     @Override
     public void setApplicationContext(ApplicationContext ctx) throws BeansException {
         Map<String, Object> serviceBeanMap = ctx.getBeansWithAnnotation(RpcService.class);
-        if (MapUtils.isNotEmpty(serviceBeanMap)) {
+        if (serviceBeanMap != null && !serviceBeanMap.isEmpty()) {
             for (Object serviceBean : serviceBeanMap.values()) {
                 String interfaceName = serviceBean.getClass().getAnnotation(RpcService.class).value().getName();
                 registerRpcService(interfaceName, serviceBean);
@@ -184,17 +183,18 @@ public class RpcServer implements ApplicationContextAware, InitializingBean, Dis
 
 	public void setRpcLogicThreadPool(ThreadPoolExecutor rpcLogicThreadPool) {
 		this.rpcLogicThreadPool = rpcLogicThreadPool;
+		this.asyncActionExecutor = new ActionExecutor(rpcLogicThreadPool);
 	}
 
 	public ThreadPoolExecutor getRpcLogicThreadPool() {
 		return rpcLogicThreadPool;
 	}
 
-	public IRpcHandlerDelegate getRpcHandlerDelegate() {
-		return rpcHandlerDelegate;
+	public IRpcRequestHandler getRpcRequestHandler() {
+		return rpcRequestHandler;
 	}
 
-	public void setRpcHandlerDelegate(IRpcHandlerDelegate rpcHandlerDelegate) {
-		this.rpcHandlerDelegate = rpcHandlerDelegate;
+	public void setRpcRequestHandler(IRpcRequestHandler rpcRequestHandler) {
+		this.rpcRequestHandler = rpcRequestHandler;
 	}
 }

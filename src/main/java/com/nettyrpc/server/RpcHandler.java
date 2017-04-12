@@ -1,11 +1,10 @@
 package com.nettyrpc.server;
 
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Maps;
 import com.nettyrpc.execution.ActionQueue;
 import com.nettyrpc.protocol.AsyncMessage;
 import com.nettyrpc.protocol.IMessage;
@@ -28,7 +27,7 @@ public class RpcHandler extends SimpleChannelInboundHandler<IMessage> {
     private static final Logger LOGGER = LoggerFactory.getLogger(RpcHandler.class);
     
     private RpcServer rpcServer;
-    private Map<String, AsyncClient> asyncClients = Maps.newConcurrentMap();
+    private ConcurrentHashMap<String, AsyncClient> asyncClients = new ConcurrentHashMap<>();
     
     public RpcHandler(RpcServer rpcServer) {
     	this.rpcServer = rpcServer;
@@ -71,7 +70,9 @@ public class RpcHandler extends SimpleChannelInboundHandler<IMessage> {
 				}
 			}
 		}
-		client.getQueue().enqueue(new AsyncAction(client.getQueue(), asyncMsg, client));
+		if(client != null) {
+			client.getQueue().enqueue(new AsyncAction(client.getQueue(), asyncMsg, client));
+		}
 	}
 
 	private void handRpcRequest(final ChannelHandlerContext ctx, final RpcRequest request) {
@@ -84,7 +85,7 @@ public class RpcHandler extends SimpleChannelInboundHandler<IMessage> {
 		        try {
 		        	String className = request.getClassName();
 			        Object serviceBean = rpcServer.getHandlerMap().get(className);
-		            Object result = rpcServer.getRpcHandlerDelegate().handle(serviceBean, request);
+		            Object result = rpcServer.getRpcRequestHandler().handle(serviceBean, request, ctx.channel());
 		            response.setResult(result);
 		        } catch (Throwable t) {
 		            response.setError(t);

@@ -117,7 +117,7 @@ public class ConnectManage {
 					for (RpcClientHandler handler : connectedHandlers) {
 						Channel channel = handler.getSession().getChannel();
 						if (channel.isActive()) {
-							handler.cleanTimeoutRequest();
+							handler.checkTimeoutRequest();
 						} else {
 							reconnect(handler, handler.getRemotePeer());
 						}
@@ -126,7 +126,7 @@ public class ConnectManage {
 					LOGGER.error("", e);
 				}
 			}
-		}, 5, 5, TimeUnit.SECONDS);
+		}, 5, 10, TimeUnit.MILLISECONDS);
 	}
 
 	public void updateConnectedServer(List<String> allServerAddress) {
@@ -175,7 +175,7 @@ public class ConnectManage {
 					for (RpcClientHandler handler : connectedServerNodes.get(remotePeer)) {
 						handler.close();
 					}
-					connectedServerNodes.removeAll(connectedServerHandler);
+					connectedServerNodes.removeAll(remotePeer);
 				}
 				connectedHandlers.clear();
 			}
@@ -202,9 +202,8 @@ public class ConnectManage {
 							@Override
 							public void operationComplete(final ChannelFuture channelFuture) throws Exception {
 								if (channelFuture.isSuccess()) {
-									LOGGER.debug("Successfully connect to remote server. remote peer = " + remotePeer);
-									RpcClientHandler handler = channelFuture.channel().pipeline()
-											.get(RpcClientHandler.class);
+									LOGGER.info("Successfully connect to remote server. remote peer = " + remotePeer);
+									RpcClientHandler handler = channelFuture.channel().pipeline().get(RpcClientHandler.class);
 									handler.setRpcClient(rpcClient);
 									addHandler(handler);
 								}
@@ -251,9 +250,11 @@ public class ConnectManage {
 		CopyOnWriteArrayList<RpcClientHandler> handlers = (CopyOnWriteArrayList<RpcClientHandler>) this.connectedHandlers
 				.clone();
 		int size = handlers.size();
-		while (isRuning && size <= 0) {
+		int tryTime = 0;
+		while (isRuning && size <= 0 && tryTime < 2) {
 			try {
 				boolean available = waitingForHandler();
+				tryTime++;
 				if (available) {
 					handlers = (CopyOnWriteArrayList<RpcClientHandler>) this.connectedHandlers.clone();
 					size = handlers.size();
@@ -263,6 +264,12 @@ public class ConnectManage {
 				throw new RuntimeException("Can't connect any servers!", e);
 			}
 		}
+		
+		if(size == 0) {
+			LOGGER.error("RpcClient choose handler fail! {}", this.serviceAddress);
+			throw new RuntimeException("RpcClient handler fetch timeout !");
+		}
+		
 		int index = (roundRobin.getAndAdd(1) + size) % size;
 		RpcClientHandler handler = handlers.get(index);
 		LOGGER.debug("choose rpc handler index {}", index);
@@ -273,9 +280,11 @@ public class ConnectManage {
 	public RpcClientHandler chooseHandler(SocketAddress remotePeer) {
 		CopyOnWriteArrayList<RpcClientHandler> handlers = (CopyOnWriteArrayList<RpcClientHandler>) this.connectedHandlers.clone();
 		int size = handlers.size();
-		while (isRuning && size <= 0) {
+		int tryTime = 0;
+		while (isRuning && size <= 0 && tryTime < 2) {
 			try {
 				boolean available = waitingForHandler();
+				tryTime++;
 				if (available) {
 					handlers = (CopyOnWriteArrayList<RpcClientHandler>) this.connectedHandlers.clone();
 					size = handlers.size();
@@ -284,6 +293,11 @@ public class ConnectManage {
 				LOGGER.error("Waiting for available node is interrupted! ", e);
 				throw new RuntimeException("Can't connect any servers!", e);
 			}
+		}
+		
+		if(size == 0) {
+			LOGGER.error("RpcClient choose handler fail! {}", this.serviceAddress);
+			throw new RuntimeException("RpcClient handler fetch timeout !");
 		}
 		
 		RpcClientHandler handler = null;
@@ -442,5 +456,9 @@ public class ConnectManage {
 				}
 			}
 		}
+	}
+
+	public String getServiceAddress() {
+		return serviceAddress;
 	}
 }

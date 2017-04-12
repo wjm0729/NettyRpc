@@ -1,0 +1,28 @@
+@startuml
+
+RpcClient --> RpcClient:  创建RpcProxy
+
+Application -> RpcProxy: 本地调用RpcProxy接口
+
+RpcProxy --> RpcProxy: 将请求封装成一个RpcRequest
+
+RpcProxy -> RpcClient: 请求或得一个RpcClientHandler
+
+RpcClient -> ConnectManage: 根据算法或得一个可用的RpcClientHandler
+
+RpcClient <-- ConnectManage:
+
+RpcProxy <-- RpcClient:
+
+RpcProxy -> RpcClientHandler: 发送调用请求
+
+RpcClientHandler --> RpcClientHandler: 将RpcRequest封装到RpcFuture保存到内存
+
+RpcClientHandler --> Netty: 将请求消息发送到服务端
+
+Netty --> RpcClientHandler: 收到返回消息后根据RequestId找到RpcFuture
+
+RpcFuture -> Application: 找到调用者线程赋予返回结果并唤醒
+
+
+@enduml

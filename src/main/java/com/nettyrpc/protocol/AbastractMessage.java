@@ -1,6 +1,6 @@
 package com.nettyrpc.protocol;
 
-public class AbastractMessage implements IMessage {
+public abstract class AbastractMessage implements IMessage {
 	private String requestId;
 
 	public String getRequestId() {

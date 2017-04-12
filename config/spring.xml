@@ -30,7 +30,7 @@
 			rpcLogicThreadPool		服务端逻辑处理线程池
 			asyncActionExecutor		异步消息队列执行线程池 (默认使用rpcLogicThreadPool)
 			clientTimeoutSeconds	连接超时时间 (默认 180秒)
-			rpcHandlerDelegate		rpc请求处理委托类
+			rpcRequestHandler		rpc请求处理委托类
 	 -->
     <bean id="rpcServer" class="com.nettyrpc.server.RpcServer">
         <constructor-arg name="serverAddress" value="${server.address}"/>
@@ -74,7 +74,6 @@
 			clientEventLoopGroup	客户端(Netty的Work)线程池			
 			connectionPerClient		为每个服务器地址创建并保持的连接数量 	1
 			connectTimeoutMillis	应用线程取RpcClient连接的超时时间		3000
-			zkRegistryPath			服务注册路径 							/registry
 	-->
 	<bean id="connectManage" class="com.nettyrpc.client.ConnectManage">
 		<constructor-arg name="serviceAddress" value="${registry.address}" />
@@ -89,6 +88,8 @@
 			requestIDCreater		消息ID生成器 默认使用 uuid
 			rpcCallbackThreadPool	rpc异步回调处理线程池
 			requestTimeoutMillis	rpc请求处理超时时间	300000
+			slowResponseMillis		慢处理判断时间		1500
+			retryTimes				超时重试次数			0
 	 -->
 	<bean id="rpcClient" class="com.nettyrpc.client.RpcClient">
 		<constructor-arg name="connectManage" ref="connectManage" />

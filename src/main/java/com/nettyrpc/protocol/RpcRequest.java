@@ -1,5 +1,7 @@
 package com.nettyrpc.protocol;
 
+import java.util.Arrays;
+
 /**
  * RPC Request
  * @author huangyong
@@ -41,4 +43,9 @@ public class RpcRequest extends AbastractMessage {
     public void setParameters(Object[] parameters) {
         this.parameters = parameters;
     }
+
+	@Override
+	public String toString() {
+		return "RpcRequest [requestId=" + getRequestId() + ", className=" + className + ", methodName=" + methodName + ", parameterTypes=" + Arrays.toString(parameterTypes) + ", parameters=" + Arrays.toString(parameters) + "]";
+	}
 }

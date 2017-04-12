@@ -29,7 +29,6 @@ public class ServiceRegistry {
 
 	private int zkTimeoutMillis = 5000;
 	private String zkRegistryPath = "/registry";
-	private String zkDataPath = zkRegistryPath + "/rpc_client";
 
 	public ServiceRegistry(String registryAddress) {
 		this.registryAddress = registryAddress;
@@ -81,8 +80,8 @@ public class ServiceRegistry {
 	private void createNode(ZooKeeper zk, String data) {
 		try {
 			byte[] bytes = data.getBytes();
-			String path = zk.create(zkDataPath, bytes, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
-			LOGGER.debug("create zookeeper node ({} => {})", path, data);
+			String path = zk.create(zkRegistryPath + "/rpc_client", bytes, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
+			LOGGER.info("Create ZooKeeper node ({} => {})", path, data);
 		} catch (KeeperException e) {
 			LOGGER.error("", e);
 		} catch (InterruptedException ex) {
@@ -106,13 +105,5 @@ public class ServiceRegistry {
 
 	public void setZkRegistryPath(String zkRegistryPath) {
 		this.zkRegistryPath = zkRegistryPath;
-	}
-
-	public String getZkDataPath() {
-		return zkDataPath;
-	}
-
-	public void setZkDataPath(String zkDataPath) {
-		this.zkDataPath = zkDataPath;
 	}
 }

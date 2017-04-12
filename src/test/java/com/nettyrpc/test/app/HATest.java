@@ -10,7 +10,7 @@ import com.nettyrpc.client.AsyncClientHandler;
 import com.nettyrpc.client.AsyncRPCCallback;
 import com.nettyrpc.client.ClientSession;
 import com.nettyrpc.client.ConnectManage;
-import com.nettyrpc.client.RPCFuture;
+import com.nettyrpc.client.RpcFuture;
 import com.nettyrpc.client.RpcClient;
 import com.nettyrpc.client.proxy.IAsyncObjectProxy;
 import com.nettyrpc.protocol.AsyncMessage;
@@ -44,7 +44,7 @@ public class HATest {
 		IAsyncObjectProxy hello = rpcClient.createAsync(HelloService.class);
 		
 		for(int i=1; i<=count; i++) {
-			RPCFuture helloPersonFuture = hello.call("hello", Integer.valueOf(i));
+			RpcFuture helloPersonFuture = hello.call("hello", Integer.valueOf(i));
 			helloPersonFuture.addCallback(new AsyncRPCCallback() {
 	            @Override
 	            public void success(Object result) {
@@ -132,7 +132,7 @@ public class HATest {
 				public void run() {
 					int num = 500;
 					try {
-						RPCFuture helloPersonFuture = client.call("GetTestPerson", "xiaoming", num);
+						RpcFuture helloPersonFuture = client.call("GetTestPerson", "xiaoming", num);
 						helloPersonFuture.addCallback(new AsyncRPCCallback() {
 				            @Override
 				            public void success(Object result) {

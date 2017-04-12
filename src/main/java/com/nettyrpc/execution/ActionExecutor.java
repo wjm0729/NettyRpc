@@ -96,7 +96,7 @@ public class ActionExecutor {
 
 	static class DelayCheckThread extends Thread {
 
-		private static final int CHECK_TIME = 40;// ms
+		private static final int CHECK_TIME = 10;// ms
 		private ConcurrentLinkedDeque<DelayAction> queue;
 		private boolean isRunning;
 

@@ -28,4 +28,9 @@ public class RpcResponse extends AbastractMessage {
     public void setResult(Object result) {
         this.result = result;
     }
+
+	@Override
+	public String toString() {
+		return "RpcResponse [requestId=" + getRequestId() + ", error=" + error + ", result=" + result + "]";
+	}
 }
