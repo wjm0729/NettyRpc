@@ -25,6 +25,7 @@ public class HelloPersonCallbackTest {
             int num = 5;
             RPCFuture helloPersonFuture = client.call("GetTestPerson", "xiaoming", num);
             helloPersonFuture.addCallback(new AsyncRPCCallback() {
+
                 @Override
                 public void success(Object result) {
                     List<Person> persons = (List<Person>) result;

@@ -4,6 +4,7 @@ public class Person {
 
     private String firstName;
     private String lastName;
+    private boolean master;
 
     public Person() {
     }
@@ -11,6 +12,15 @@ public class Person {
     public Person(String firstName, String lastName) {
         this.firstName = firstName;
         this.lastName = lastName;
+    }
+
+
+    public boolean isMaster() {
+        return master;
+    }
+
+    public void setMaster(boolean master) {
+        this.master = master;
     }
 
     public String getFirstName() {

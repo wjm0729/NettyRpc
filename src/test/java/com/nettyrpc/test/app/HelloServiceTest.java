@@ -61,9 +61,13 @@ public class HelloServiceTest {
         HelloPersonService helloPersonService = rpcClient.create(HelloPersonService.class);
         int num = 5;
         List<Person>  persons = helloPersonService.GetTestPerson("xiaoming", num);
-        
+
+        for(Person p:persons) {
+            System.err.println(p.toString()+":"+p.isMaster());
+        }
+
         for(int i=0;i<10000; i++) {
-        	helloPersonService.GetTestPerson("aaaaaa"+i, num);
+            List<Person> list = helloPersonService.GetTestPerson("aaaaaa"+i, num);
         }
         
         System.err.println(persons.size());

@@ -4,7 +4,7 @@ package com.nettyrpc.protocol;
  * RPC Response
  * @author huangyong
  */
-public class RpcResponse extends RpcMessage {
+public class RpcResponse extends AbastractMessage {
 
     private Throwable error;
     private Object result;
@@ -28,4 +28,9 @@ public class RpcResponse extends RpcMessage {
     public void setResult(Object result) {
         this.result = result;
     }
+
+	@Override
+	public String toString() {
+		return "RpcResponse [requestId=" + getRequestId() + ", error=" + error + ", result=" + result + "]";
+	}
 }

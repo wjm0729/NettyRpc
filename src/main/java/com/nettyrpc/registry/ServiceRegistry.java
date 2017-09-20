@@ -21,70 +21,89 @@ import org.slf4j.LoggerFactory;
  */
 public class ServiceRegistry {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ServiceRegistry.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(ServiceRegistry.class);
 
-    private CountDownLatch latch = new CountDownLatch(1);
+	private CountDownLatch latch = new CountDownLatch(1);
 
-    private String registryAddress;
+	private String registryAddress;
 
-    public ServiceRegistry(String registryAddress) {
-        this.registryAddress = registryAddress;
-    }
+	private int zkTimeoutMillis = 5000;
+	private String zkRegistryPath = "/registry";
 
-    public void register(String data) {
-        if (data != null) {
-            ZooKeeper zk = connectServer();
-            if (zk != null) {
-                AddRootNode(zk); // Add root node if not exist
-                createNode(zk, data);
-            }
-        }
-    }
+	public ServiceRegistry(String registryAddress) {
+		this.registryAddress = registryAddress;
+	}
 
-    private ZooKeeper connectServer() {
-        ZooKeeper zk = null;
-        try {
-            zk = new ZooKeeper(registryAddress, Constant.ZK_SESSION_TIMEOUT, new Watcher() {
-                @Override
-                public void process(WatchedEvent event) {
-                    if (event.getState() == Event.KeeperState.SyncConnected) {
-                        latch.countDown();
-                    }
-                }
-            });
-            latch.await();
-        } catch (IOException e) {
-            LOGGER.error("", e);
-        }
-        catch (InterruptedException ex){
-            LOGGER.error("", ex);
-        }
-        return zk;
-    }
+	public void register(String data) {
+		if (data != null) {
+			ZooKeeper zk = connectServer();
+			if (zk != null) {
+				AddRootNode(zk); // Add root node if not exist
+				createNode(zk, data);
+			}
+		}
+	}
 
-    private void AddRootNode(ZooKeeper zk){
-        try {
-            Stat s = zk.exists(Constant.ZK_REGISTRY_PATH, false);
-            if (s == null) {
-                zk.create(Constant.ZK_REGISTRY_PATH, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-            }
-        } catch (KeeperException e) {
-            LOGGER.error(e.toString());
-        } catch (InterruptedException e) {
-            LOGGER.error(e.toString());
-        }
-    }
+	private ZooKeeper connectServer() {
+		ZooKeeper zk = null;
+		try {
+			zk = new ZooKeeper(registryAddress, zkTimeoutMillis, new Watcher() {
+				@Override
+				public void process(WatchedEvent event) {
+					if (event.getState() == Event.KeeperState.SyncConnected) {
+						latch.countDown();
+					}
+				}
+			});
+			latch.await();
+		} catch (IOException e) {
+			LOGGER.error("", e);
+		} catch (InterruptedException ex) {
+			LOGGER.error("", ex);
+		}
+		return zk;
+	}
 
-    private void createNode(ZooKeeper zk, String data) {
-        try {
-            byte[] bytes = data.getBytes();
-            String path = zk.create(Constant.ZK_DATA_PATH, bytes, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
-            LOGGER.debug("create zookeeper node ({} => {})", path, data);
-        } catch (KeeperException e) {
-            LOGGER.error("", e);
-        }
-        catch (InterruptedException ex){
-            LOGGER.error("", ex);
-        }
-    }
+	private void AddRootNode(ZooKeeper zk) {
+		try {
+			Stat s = zk.exists(zkRegistryPath, false);
+			if (s == null) {
+				zk.create(zkRegistryPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+			}
+		} catch (KeeperException e) {
+			LOGGER.error(e.toString());
+		} catch (InterruptedException e) {
+			LOGGER.error(e.toString());
+		}
+	}
+
+	private void createNode(ZooKeeper zk, String data) {
+		try {
+			byte[] bytes = data.getBytes();
+			String path = zk.create(zkRegistryPath + "/rpc_client", bytes, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
+			LOGGER.info("Create ZooKeeper node ({} => {})", path, data);
+		} catch (KeeperException e) {
+			LOGGER.error("", e);
+		} catch (InterruptedException ex) {
+			LOGGER.error("", ex);
+		}
+	}
+	
+	// for spring
+
+	public int getZkTimeoutMillis() {
+		return zkTimeoutMillis;
+	}
+
+	public void setZkTimeoutMillis(int zkTimeoutMillis) {
+		this.zkTimeoutMillis = zkTimeoutMillis;
+	}
+
+	public String getZkRegistryPath() {
+		return zkRegistryPath;
+	}
+
+	public void setZkRegistryPath(String zkRegistryPath) {
+		this.zkRegistryPath = zkRegistryPath;
+	}
 }

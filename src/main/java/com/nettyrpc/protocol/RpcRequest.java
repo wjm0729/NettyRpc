@@ -1,15 +1,12 @@
 package com.nettyrpc.protocol;
 
+import java.util.Arrays;
+
 /**
  * RPC Request
  * @author huangyong
  */
-public class RpcRequest extends RpcMessage {
-	/**
-	 * 请求超时，默认5分钟
-	 */
-	public static long RPC_REQUEST_TIMEOUT = 300_000;
-    
+public class RpcRequest extends AbastractMessage {
     private String className;
     private String methodName;
     private Class<?>[] parameterTypes;
@@ -46,4 +43,9 @@ public class RpcRequest extends RpcMessage {
     public void setParameters(Object[] parameters) {
         this.parameters = parameters;
     }
+
+	@Override
+	public String toString() {
+		return "RpcRequest [requestId=" + getRequestId() + ", className=" + className + ", methodName=" + methodName + ", parameterTypes=" + Arrays.toString(parameterTypes) + ", parameters=" + Arrays.toString(parameters) + "]";
+	}
 }

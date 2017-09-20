@@ -1,6 +1,6 @@
 package com.nettyrpc.protocol;
 
-public class RpcMessage {
+public abstract class AbastractMessage implements IMessage {
 	private String requestId;
 
 	public String getRequestId() {
@@ -10,5 +10,4 @@ public class RpcMessage {
 	public void setRequestId(String requestId) {
 		this.requestId = requestId;
 	}
-
 }

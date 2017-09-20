@@ -1,5 +1,9 @@
 package com.nettyrpc.protocol;
 
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.HashMap;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
@@ -8,10 +12,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.HashMap;
 
 /**
  * Json Util
@@ -25,7 +25,7 @@ public class JsonUtil {
                 "yyyy-MM-dd HH:mm:ss");
         objMapper.setDateFormat(dateFormat);
         objMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        objMapper.enable(SerializationFeature.INDENT_OUTPUT);
+        // objMapper.enable(SerializationFeature.INDENT_OUTPUT);
         objMapper.configure(JsonGenerator.Feature.AUTO_CLOSE_TARGET, false);
         objMapper.configure(JsonGenerator.Feature.AUTO_CLOSE_JSON_CONTENT, false);
         objMapper.disable(SerializationFeature.FLUSH_AFTER_WRITE_VALUE);

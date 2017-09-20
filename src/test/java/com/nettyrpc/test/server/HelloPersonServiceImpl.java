@@ -18,7 +18,9 @@ public class HelloPersonServiceImpl implements HelloPersonService {
     public List<Person> GetTestPerson(String name, int num) {
         List<Person> persons = new ArrayList<>(num);
         for (int i = 0; i < num; ++i) {
-            persons.add(new Person(Integer.toString(i), name));
+            Person person = new Person(Integer.toString(i), name);
+            person.setMaster(i%2==0);
+            persons.add(person);
         }
         System.err.println("~~~~~~~~~~~~~~~~~~~~~"+name);
         return persons;

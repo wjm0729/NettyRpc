@@ -6,29 +6,33 @@ import io.netty.handler.codec.MessageToByteEncoder;
 
 /**
  * RPC Encoder
+ * 
  * @author huangyong
  * @author jiangmin.wu
  */
-public class RpcEncoder extends MessageToByteEncoder {
+public class RpcEncoder extends MessageToByteEncoder<Object> {
 
-    private Class<?> genericClass;
+	private Class<?> genericClass;
 
-    public RpcEncoder(Class<?> genericClass) {
-        this.genericClass = genericClass;
-    }
+	public RpcEncoder(Class<?> genericClass) {
+		this.genericClass = genericClass;
+	}
 
-    @Override
-    public void encode(ChannelHandlerContext ctx, Object in, ByteBuf out) throws Exception {
-        if (genericClass.isInstance(in)) {
-//            byte[] data = SerializationUtil.serialize(in);
-//            out.writeInt(data.length);
-//            out.writeBytes(data);
-        	
-        	ByteBuf buff = ctx.alloc().buffer();
-        	SerializationUtil.serialize(in, buff);
-        	out.writeInt(buff.readableBytes());
-        	out.writeBytes(buff);
-        	buff.release();
-        }
-    }
+	@Override
+	public void encode(ChannelHandlerContext ctx, Object in, ByteBuf out) throws Exception {
+
+		ByteBuf buff = ctx.alloc().buffer();
+		SerializationUtil.serialize(in, buff);
+
+		if (AsyncMessage.class.isInstance(in)) {
+			out.writeByte(0x80);// head
+		} else if (genericClass.isInstance(in)) {
+			out.writeByte(0x00);// head
+		}
+
+		out.writeInt(buff.readableBytes());
+		out.writeBytes(buff);
+		buff.release();
+
+	}
 }
